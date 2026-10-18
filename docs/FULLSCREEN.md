@@ -18,7 +18,11 @@ scene may remain portrait-aligned over a landscape app. As of 0.1.8, the actual
 initial touch is captured before recognition in fixed screen coordinates and
 converted into the host AFTER its presentation layout, with one deferred layout
 check for first-use setup. This avoids retaining an edge calculated in the old
-host coordinates. Near corners, the inward pan direction breaks distance ties.
+host coordinates. In 0.1.11, portrait placement is locked to the fixed screen's top (or bottom
+for upside-down portrait), independent of corner proximity and drag direction.
+Landscape considers only the two possible fixed-screen top sides; position
+along that edge cannot select a different boundary. The row's basis is converted
+from fixed screen space into the final host, including already-oriented hosts.
 The row rotates onto the touched edge and slides outward through that edge.
 Scene conversion remains the fallback for presentations without a touch.
 SpringBoard's existing
@@ -41,10 +45,25 @@ hook, notification IPC, constructor initialization, custom auto-hide timer and
 native timer/tap suppression introduced in 0.1.9 are removed entirely. Native
 iOS grabber dismissal is restored. Android-specific dismissal is NOT enabled.
 
-The retained Android [`AutoHideControllerImpl`](../reference/upstream/packages/SystemUI/src/com/android/systemui/statusbar/phone/AutoHideControllerImpl.java)
-reference specifies 2250 ms auto-hide and 350 ms outside-touch dismissal, with
-accessibility adjustments. These remain reference material, not active features
-of the recovery build. They need a separately validated redesign before returning.
+## Bar-local auto-hide (0.1.11)
+
+0.1.11 restores a 2.25-second deadline using the native grabber's existing
+`_dismissTongue:` callback. A non-recognizing, non-canceling touch observer is
+attached ONLY to the bar's bounds. Holding the bar or its native top-pull gesture
+cancels the pending deadline; release/cancellation starts a fresh 2.25 seconds.
+Native presentations which explicitly disable auto-dismiss retain that decision;
+missing private scheduling methods retain native behavior.
+
+The bar's hit-test area is limited to its row. Recording controls receive their
+original touch delivery, and native shade/LineageQS pull routing is unchanged.
+There is NO full-screen layer, app event hook, outside-touch IPC, constructor
+initialization, VoiceOver-specific timeout or timer/tap suppression hook.
+Ordinary app taps/scrolls neither pause the timer nor request dismissal.
+
+The Android reference's 350 ms branch is conditional on an actual
+`ACTION_OUTSIDE` event plus visibility and `shouldHideOnTouch()` checks; it was
+incorrect to equate that with every app touch. A generic touch-catching overlay
+would not reproduce normal Android fullscreen interaction and is not implemented.
 
 If affected, remain in Safe Mode and uninstall 0.1.9 or replace it with the
 recovery package before attempting another respring. The recovery build still

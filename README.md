@@ -6,8 +6,8 @@ the native iOS status-bar host. Designed to pair with
 
 **Status: experimental. v0.1.0 confirmed working by the user on the SE below;
 v0.1.9 caused a reported SpringBoard startup freeze and is withdrawn.
-v0.1.10 removes its runtime changes and restores v0.1.8 behavior; device recovery
-confirmation is still required.**
+v0.1.10 rolled its runtime changes back. v0.1.11 corrects corner placement and
+adds bar-local auto-hide pausing; device confirmation is still required.**
 Primary test target: iPhone SE (2016), iOS 15.8.2, rootless jailbreak.
 arm64 (SE/A9) and arm64e slices are included. iOS 16 and notched layouts still
 need device validation; the original SE cannot run iOS 16.
@@ -41,8 +41,9 @@ need device validation; the original SE cannot run iOS 16.
   spinner, rotation lock and other unported indicators are omitted instead.
 - Fullscreen top-edge first swipe: a temporary live DroidSB row replaces the
   native arrow, with Android's 275/340 ms slide and easing. Native second-swipe
-  routing and native iOS auto-dismiss remain; Reduce Motion is respected.
-  Android-specific dismissal is disabled in the recovery build.
+  routing remains; a 2.25-second native dismissal deadline pauses only while
+  touching/pulling the bar, then restarts on release. App interaction is untouched.
+  No outside-touch dismissal or full-screen touch overlay. Reduce Motion is respected.
   See [fullscreen behavior](docs/FULLSCREEN.md).
 
 Unported call/hotspot/privacy/secondary-SIM indicators are not recreated and do
@@ -88,7 +89,7 @@ tweaks before testing. Toggle Enabled off to restore stock visuals; uninstall
 From a device shell with root privileges:
 
 ```sh
-dpkg -i dev.drel.droidsb_0.1.10_iphoneos-arm64.deb
+dpkg -i dev.drel.droidsb_0.1.11_iphoneos-arm64.deb
 killall -9 SpringBoard
 # Removal:
 apt remove dev.drel.droidsb

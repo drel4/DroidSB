@@ -71,10 +71,11 @@ static void Update(UIView *bar) {
 - (void)_handlePullGesture:(UIPanGestureRecognizer *)gesture {
     DSBCaptureTransientOrientation(self, gesture);
     %orig;
+    DSBUpdateTransientBarInteraction(self, gesture);
 }
 - (void)_presentTongueAnimated:(BOOL)animated autoDismiss:(BOOL)autoDismiss {
     %orig;
-    DSBPresentTransientBar(self, animated);
+    DSBPresentTransientBar(self, animated, autoDismiss);
 }
 - (void)_dismissTongueWithStyle:(NSInteger)style animated:(BOOL)animated {
     DSBDismissTransientBar(self, animated);

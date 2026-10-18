@@ -8,4 +8,4 @@ cc -std=c11 -Wall -Wextra -Werror -ISources tests/recording-layout.c -o "$layout
 echo 'PASS: full/compact recording chip, clock preservation, boundary widths and no overlap'
 cc -std=c11 -Wall -Wextra -Werror -ISources tests/transient-geometry.c -o "$layout_binary"
 "$layout_binary"
-echo 'PASS: fullscreen full-edge/corner starts, first-use coordinate cases, both landscape rotations and outward slide geometry'
+echo 'PASS: portrait corner top-lock, landscape top-axis placement, oriented-host basis and outward slide geometry'

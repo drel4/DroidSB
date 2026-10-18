@@ -24,6 +24,19 @@ It also removes status-entry-triggered stock fallback, including network activit
 
 ## Required before claiming stable
 
+- 0.1.11 corner placement: in portrait, reveal near the left/right ends of the
+  top edge, with both straight and diagonal movement. The row must remain
+  horizontal at the top. Repeat immediately after respring and app rotation.
+- Repeat top-edge pulls across both landscapes, including corners; verify
+  upright text, full edge width and no double rotation in already-oriented hosts.
+- Reveal/release: hide should start roughly 2.25 seconds later. Hold the bar's
+  blank area/clock or recording control beyond that deadline: keep visible until
+  release/cancel, then restart the timeout. Confirm recording actions still work.
+- Hold/scroll/tap in the APP below the row: app interaction must remain normal
+  and must not postpone or accelerate bar auto-hide. There is no outside-touch
+  dismissal. Repeat with LineageQS; a second accepted pull must open its shade.
+- Verify startup/respring and confirm no 0.1.9 global event/IPC/timer-suppression
+  hooks have returned. Keep 0.1.10 available as the recovery baseline.
 - Recovery 0.1.10: install from Safe Mode over 0.1.9, then verify a normal
   respring/unlock reaches the Home Screen without a black screen/spinning wheel.
   Repeat respring, app launches and fullscreen reveal/normal native dismissal.
