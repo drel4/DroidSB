@@ -12,6 +12,15 @@ The checked chip/model/background and legacy `ScreenRecordDrawable` do **not**
 contain a continuous color pulse. Launch/return transitions are separate. This
 port does not invent a pulse, or recreate Android's countdown/toolbar.
 
+As of 0.1.12, chip visibility fades in/out, matching the single-chip
+`AnimatedVisibility(fadeIn(), fadeOut())` approach in `OngoingActivityChips.kt`.
+The UIKit fade is 300 ms; width/clock reflow and changed-glyph crossfades are
+200 ms, with 120 ms press-color feedback. These durations/press feedback are
+iOS adaptations, not a claim that every Android animation is reproduced.
+There is no continuous color pulse, timer-tick fade or invented dialog morph.
+Reduce Motion makes these changes immediate. Interrupted visibility changes
+reverse from the current fade, and exiting chips cannot receive actions.
+
 `ChipContent.hideTextIfDoesNotFit` removes timer text if it does not completely
 fit, leaving the icon centered in the red chip. `OngoingActivityChipsViewModel`
 can also select `Content.IconOnly` for multiple chips on narrow displays. Neither
@@ -36,9 +45,18 @@ This private-API path still requires validation on the test iPhone.
 ## Identifying recording
 
 `UIScreen.isCaptured` also covers mirroring, so it is insufficient alone. Require
-an enabled native background activity plus native recording symbol/red-color
-evidence while capture is active. The native activity type number is passed back
-to UIKit's own symbol/color helpers, not interpreted through a guessed enum.
+an enabled native background activity with an explicit recording symbol, or
+initial red-color evidence while capture is active. The native activity type
+number is passed back to UIKit's own symbol/color helpers, not interpreted
+through a guessed enum.
+
+Once confirmed, the same enabled native activity retains its recording identity
+through a temporary capture-state drop, including the user-reported Stop/Cancel
+popup. Evidence belongs to the native source bar and is shared with its transient
+renderer. A disabled or changed native activity clears it, so Stop removes the
+chip while Cancel/continue does not make it disappear/reappear or reset its timer.
+This follows native indicator state; it does not assert whether iOS is encoding
+video during the popup, control ReplayKit, or invent a paused-recording API.
 As of v0.1.5, unclassified activity does not restore the native bar. During the
 initial countdown a chip may not appear until capture starts. Other unported
 native activity/privacy indicators are omitted rather than causing reversion.

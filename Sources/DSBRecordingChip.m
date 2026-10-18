@@ -5,7 +5,16 @@
 #import "DSBStatusBarView.h"
 #import "DSBAssets.h"
 #import "DSBFont.h"
+#import "DSBRecordingState.h"
 #import <objc/message.h>
+#import <objc/runtime.h>
+
+@interface DSBRecordingSession : NSObject
+@property(nonatomic) DSBRecordingEvidence evidence;
+@end
+@implementation DSBRecordingSession
+@end
+static char RecordingSessionKey;
 
 static id ActivityValue(id item, NSString *method, NSInteger type) {
     SEL selector = NSSelectorFromString(method);
@@ -15,28 +24,39 @@ static id ActivityValue(id item, NSString *method, NSInteger type) {
 }
 
 BOOL DSBIsScreenRecording(UIView *bar, id data) {
+    if (!bar) return NO;
+    // The fullscreen renderer has a lightweight host; retain evidence on its
+    // real native source so it agrees with the ordinary status-bar renderer.
+    UIView *source = DSBRead(bar, @"sourceBar");
+    if (![source isKindOfClass:UIView.class]) source = bar;
+    DSBRecordingSession *session = objc_getAssociatedObject(source, &RecordingSessionKey);
+    if (!session) {
+        session = [DSBRecordingSession new];
+        objc_setAssociatedObject(source, &RecordingSessionKey, session, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
     id entry = DSBRead(data, @"backgroundActivityEntry");
-    if (![DSBRead(entry, @"enabled") boolValue]) return NO;
+    BOOL enabled = [DSBRead(entry, @"enabled") boolValue];
     UIScreen *screen = bar.window.screen ?: UIScreen.mainScreen;
-    // Capture alone also includes AirPlay/mirroring: never call all capture
-    // "recording". Require the native activity item's recording symbol or red
-    // recording colour as additional evidence. Do not guess private type enums.
-    if (!screen.isCaptured) return NO;
+    // Capture alone also includes AirPlay/mirroring. Never infer recording
+    // from capture without native symbol/red evidence, or guess type enums.
     id items = DSBRead(bar, @"items");
-    if (![items isKindOfClass:NSDictionary.class]) return NO;
     NSInteger type = [DSBRead(entry, @"type") integerValue];
-    for (id item in [items allValues]) {
+    BOOL recordingSymbol = NO, redActivity = NO;
+    for (id item in [items isKindOfClass:NSDictionary.class] ? [items allValues] : @[]) {
         if (![DSBRead(item, @"indicatorEntryKey") isEqual:@"backgroundActivityEntry"]) continue;
         for (NSString *method in @[@"_systemImageNameForActivityType:", @"_imageNameForActivityType:"]) {
             id name = ActivityValue(item, method, type);
-            if ([name isKindOfClass:NSString.class] && [[name lowercaseString] containsString:@"record"]) return YES;
+            if ([name isKindOfClass:NSString.class] && [[name lowercaseString] containsString:@"record"]) recordingSymbol = YES;
         }
         id color = ActivityValue(item, @"_backgroundColorForActivityType:", type);
         CGFloat r = 0, g = 0, b = 0, a = 0;
         if ([color isKindOfClass:UIColor.class] && [color getRed:&r green:&g blue:&b alpha:&a]
-            && r > .55 && g < .45 && b < .45 && a > .5) return YES;
+            && r > .55 && g < .45 && b < .45 && a > .5) redActivity = YES;
     }
-    return NO;
+    DSBRecordingEvidence evidence = session.evidence;
+    BOOL recording = DSBUpdateRecordingEvidence(&evidence, enabled, recordingSymbol, redActivity, screen.isCaptured, type);
+    session.evidence = evidence;
+    return recording;
 }
 
 BOOL DSBPerformRecordingAction(UIView *bar) {
@@ -68,6 +88,9 @@ BOOL DSBPerformRecordingAction(UIView *bar) {
 @implementation DSBRecordingChip {
     UIImageView *_icon;
     UILabel *_timer;
+    BOOL _recordingVisible;
+    UIViewPropertyAnimator *_visibilityAnimator;
+    NSUInteger _visibilityVersion;
 }
 - (instancetype)initWithFrame:(CGRect)frame {
     if ((self = [super initWithFrame:frame])) {
@@ -76,6 +99,8 @@ BOOL DSBPerformRecordingAction(UIView *bar) {
         self.accessibilityTraits = UIAccessibilityTraitButton;
         self.accessibilityHint = @"Open screen recording controls";
         self.clipsToBounds = YES;
+        self.hidden = YES;
+        self.alpha = 0;
         // ColorsModel.Red -> GM2_red_700, white text; no continuous pulse in
         // the pinned Android chip. 24sp source height is fitted to the SE bar.
         self.backgroundColor = [UIColor colorWithRed:197/255.0 green:34/255.0 blue:31/255.0 alpha:1];
@@ -89,6 +114,58 @@ BOOL DSBPerformRecordingAction(UIView *bar) {
         [self addSubview:_timer];
     }
     return self;
+}
+- (BOOL)recordingVisible { return _recordingVisible; }
+- (void)setRecordingVisible:(BOOL)visible animated:(BOOL)animated {
+    if (_recordingVisible == visible && animated) return;
+    NSUInteger version = ++_visibilityVersion;
+    if (_visibilityAnimator.state == UIViewAnimatingStateActive) {
+        [_visibilityAnimator stopAnimation:NO];
+        [_visibilityAnimator finishAnimationAtPosition:UIViewAnimatingPositionCurrent];
+    }
+    _visibilityAnimator = nil;
+    _recordingVisible = visible;
+    self.userInteractionEnabled = visible;
+    animated = animated && self.window && !UIAccessibilityIsReduceMotionEnabled();
+    if (!animated) {
+        self.alpha = visible ? 1 : 0;
+        self.hidden = !visible;
+        [self.superview setNeedsLayout];
+        return;
+    }
+    if (self.hidden) self.alpha = 0;
+    self.hidden = NO;
+    [self.superview setNeedsLayout];
+    __weak DSBRecordingChip *weakSelf = self;
+    // OngoingActivityChips uses fadeIn/fadeOut. UIKit duration is an adaptation;
+    // no continuous pulse, scale loop or popup morph is imposed on native UI.
+    _visibilityAnimator = [[UIViewPropertyAnimator alloc] initWithDuration:.3 curve:UIViewAnimationCurveEaseInOut animations:^{
+        weakSelf.alpha = visible ? 1 : 0;
+    }];
+    [_visibilityAnimator addCompletion:^(__unused UIViewAnimatingPosition position) {
+        DSBRecordingChip *chip = weakSelf;
+        if (!chip || chip->_visibilityVersion != version) return;
+        chip.hidden = !visible;
+        chip->_visibilityAnimator = nil;
+        [chip.superview setNeedsLayout];
+    }];
+    [_visibilityAnimator startAnimation];
+}
+- (void)setHighlighted:(BOOL)highlighted {
+    [super setHighlighted:highlighted];
+    UIColor *color = highlighted
+        ? [UIColor colorWithRed:208/255.0 green:62/255.0 blue:59/255.0 alpha:1]
+        : [UIColor colorWithRed:197/255.0 green:34/255.0 blue:31/255.0 alpha:1];
+    [UIView animateWithDuration:UIAccessibilityIsReduceMotionEnabled() ? 0 : .12 delay:0
+        options:UIViewAnimationOptionBeginFromCurrentState | UIViewAnimationOptionAllowUserInteraction
+        animations:^{ self.backgroundColor = color; } completion:nil];
+}
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    if (!self.window) [self setRecordingVisible:NO animated:NO];
+}
+- (void)dealloc {
+    if (_visibilityAnimator.state == UIViewAnimatingStateActive) [_visibilityAnimator stopAnimation:YES];
 }
 - (void)updateFromEntry:(id)entry {
     _icon.image = DSBIcon(@"ic_screenrecord", 16);

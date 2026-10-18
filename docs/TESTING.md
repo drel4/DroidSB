@@ -24,6 +24,16 @@ It also removes status-entry-triggered stock fallback, including network activit
 
 ## Required before claiming stable
 
+- 0.1.12: start recording and verify chip fade-in; stop and verify fade-out with
+  no tappable ghost. Rapid stop/start must reverse/restart transitions cleanly.
+- Open the recording confirmation popup. While iOS retains its native recording
+  activity, DroidSB must remain red, including capture-state changes. Cancel and
+  repeat several times: no chip disappearance or elapsed-time reset. Choose Stop:
+  chip must disappear after native activity clears and the recording must save.
+- Check full/compact chip resize with VPN/Bluetooth changes, glyph crossfades,
+  held/tapped recording controls and Reduce Motion. Timer ticks must not pulse.
+- Check mirroring before/after recording; it must not inherit a stale recording
+  chip. Repeat on lock screen and fullscreen row; no app-wide hooks are needed.
 - 0.1.11 corner placement: in portrait, reveal near the left/right ends of the
   top edge, with both straight and diagonal movement. The row must remain
   horizontal at the top. Repeat immediately after respring and app rotation.

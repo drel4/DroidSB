@@ -49,6 +49,10 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     NSTimer *_recordingTimer;
     BOOL _recoveryQueued;
     NSUInteger _recoveryAttempts;
+    NSArray<NSString *> *_lastIconNames;
+    BOOL _hasLayout;
+    BOOL _lastChipShown;
+    CGSize _lastLayoutSize;
 }
 + (void)initialize {
     if (self != DSBStatusBarView.class) return;
@@ -94,7 +98,9 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     if (_suppressed) _suppressed.alpha = _savedAlpha;
     _suppressed = nil;
     self.hidden = YES;
-    _recordingChip.hidden = YES;
+    [_recordingChip setRecordingVisible:NO animated:NO];
+    _hasLayout = NO;
+    _lastIconNames = nil;
     [_recordingTimer invalidate];
     _recordingTimer = nil;
 }
@@ -103,7 +109,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     dispatch_async(dispatch_get_main_queue(), ^{ [weakSelf refresh]; });
 }
 - (BOOL)recordingChipContainsPoint:(CGPoint)point {
-    return !self.hidden && !_recordingChip.hidden && self.alpha > .01
+    return !self.hidden && _recordingChip.recordingVisible && self.alpha > .01
         && CGRectContainsPoint(_recordingChip.frame, point);
 }
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
@@ -111,7 +117,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     return [_recordingChip hitTest:[self convertPoint:point toView:_recordingChip] withEvent:event];
 }
 - (void)recordingTapped:(id)sender {
-    if (_recordingChip.hidden) return;
+    if (!_recordingChip.recordingVisible) return;
     if (DSBPerformRecordingAction(self.transientPresentation ? self.actionBar : self.nativeBar)) return;
     // If this iOS build doesn't expose the recording item's native action,
     // explain the supported route instead of showing a nonfunctional Stop button.
@@ -203,7 +209,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         _clock.text = carrier.length ? carrier : device;
     }
     _clock.accessibilityLabel = _clock.text;
-    _recordingChip.hidden = !recording;
+    [_recordingChip setRecordingVisible:recording animated:_hasLayout && !self.hidden];
     if (recording) {
         [_recordingChip updateFromEntry:DSBRead(data, @"backgroundActivityEntry")];
         if (!_recordingTimer && self.window) {
@@ -259,7 +265,15 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         // StatusBarIconView scales its FULL viewport to 15dp, not its path
         // bounds. Updated connectivity icons keep their separate 12sp size.
         CGFloat iconHeight = i < names.count && [names[i] isEqualToString:@"stat_sys_vpn_ic"] ? 15 : 12;
-        _icons[i].image = i < names.count ? DSBIcon(names[i], iconHeight) : nil;
+        UIImage *nextImage = i < names.count ? DSBIcon(names[i], iconHeight) : nil;
+        BOOL changedGlyph = i < _lastIconNames.count && i < names.count
+            && ![_lastIconNames[i] isEqualToString:names[i]];
+        if (changedGlyph && _hasLayout && self.window && !UIAccessibilityIsReduceMotionEnabled()) {
+            UIImageView *icon = _icons[i];
+            [UIView transitionWithView:icon duration:.2
+                options:UIViewAnimationOptionTransitionCrossDissolve | UIViewAnimationOptionAllowUserInteraction | UIViewAnimationOptionBeginFromCurrentState
+                animations:^{ icon.image = nextImage; } completion:nil];
+        } else _icons[i].image = nextImage;
         _icons[i].isAccessibilityElement = NO;
         _icons[i].accessibilityLabel = nil;
         if (i < names.count && [names[i] isEqualToString:@"ic_bluetooth_connected"]) {
@@ -275,6 +289,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
                 : @"Bluetooth";
         }
     }
+    _lastIconNames = [names copy];
     // Do not guess Apple's numeric RAT enum. Native string/badge may contain
     // actual carrier text; display only explicitly recognizable technology.
     NSString *badge = DSBRead(DSBRead(data, @"cellularEntry"), @"badgeString");
@@ -308,8 +323,10 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     _network.frame = CGRectMake(right - ns.width, center - 6, ns.width, 12);
     if (_network.text.length) right -= ns.width + 3;
     CGFloat maxClock = width > 350 && height > 24 ? width * .35 - left : right - left - 12;
-    _clock.frame = CGRectMake(left, center - 8, MAX(0, MIN(100, maxClock)), 16);
-    if (!_recordingChip.hidden) {
+    CGRect clockFrame = CGRectMake(left, center - 8, MAX(0, MIN(100, maxClock)), 16);
+    CGRect chipFrame = _recordingChip.frame;
+    BOOL chipShown = !_recordingChip.hidden;
+    if (chipShown) {
         CGFloat h = MIN(24, MAX(0, height - 2));
         CGSize desired = [_recordingChip sizeThatFits:CGSizeMake(100, h)];
         CGFloat room = MAX(0, right - left - 5);
@@ -317,10 +334,25 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
             [_clock sizeThatFits:CGSizeMake(100, 16)].width, desired.width,
             [_recordingChip minimumWidthForHeight:h]);
         CGFloat chipWidth = layout.chipWidth, clockWidth = layout.clockWidth;
-        _clock.frame = CGRectMake(left, center - 8, clockWidth, 16);
+        clockFrame = CGRectMake(left, center - 8, clockWidth, 16);
         CGFloat chipX = left + clockWidth + (clockWidth > 0 ? 5 : 0);
-        _recordingChip.frame = CGRectMake(chipX, center - h/2, chipWidth, h);
+        chipFrame = CGRectMake(chipX, center - h/2, chipWidth, h);
     }
+    BOOL animate = _hasLayout && (chipShown || _lastChipShown) && !self.hidden && self.window
+        && CGSizeEqualToSize(_lastLayoutSize, self.bounds.size) && !UIAccessibilityIsReduceMotionEnabled()
+        && (!CGRectEqualToRect(_clock.frame, clockFrame) || !CGRectEqualToRect(_recordingChip.frame, chipFrame));
+    void (^layout)(void) = ^{
+        self->_clock.frame = clockFrame;
+        self->_recordingChip.frame = chipFrame;
+        [self->_recordingChip layoutIfNeeded];
+    };
+    if (animate) [UIView animateWithDuration:.2 delay:0
+        options:UIViewAnimationOptionBeginFromCurrentState | UIViewAnimationOptionAllowUserInteraction
+        animations:layout completion:nil];
+    else layout();
+    _hasLayout = YES;
+    _lastChipShown = chipShown;
+    _lastLayoutSize = self.bounds.size;
 }
 - (void)didMoveToWindow {
     [super didMoveToWindow];
