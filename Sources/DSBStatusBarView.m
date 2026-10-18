@@ -93,6 +93,11 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     id keys = DSBRead(data, @"existingEntryKeys");
     if (![keys conformsToProtocol:@protocol(NSFastEnumeration)]) return YES;
     for (NSString *key in keys) {
+        // iOS-only cross-app breadcrumbs (e.g. "Back to App Store") are
+        // intentionally omitted from the Android bar. Their presence is not
+        // an unsupported status condition and must not restore stock visuals.
+        // Do not mutate the native entries: disabling DroidSB restores them.
+        if ([key isEqualToString:@"backNavigationEntry"] || [key isEqualToString:@"forwardNavigationEntry"]) continue;
         if (![supported containsObject:key] && EnabledEntry(data, key)) return YES;
     }
     // A second SIM needs separate attribution/VoWiFi handling, not a guessed bar.

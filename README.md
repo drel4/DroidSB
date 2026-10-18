@@ -25,6 +25,8 @@ need device validation; the original SE cannot run iOS 16.
   floating window. Native status-bar sizing, hiding, rotations and gestures remain.
 - Settings → DroidSB: enable/disable, percentage and 24-hour clock.
 - Leaves LineageQS's own QS header alone; no dependency on LineageQS.
+- Omits iOS-only cross-app navigation breadcrumbs ("Back to App Store", etc.)
+  without reverting to the stock bar or adding a replacement button.
 
 Calls, recording/hotspot chips, privacy indicators, dual SIM and other unsupported
 active native entries use the **complete stock bar**. This is intentional in this
@@ -68,7 +70,7 @@ tweaks before testing. Toggle Enabled off to restore stock visuals; uninstall
 From a device shell with root privileges:
 
 ```sh
-dpkg -i dev.drel.droidsb_0.1.2_iphoneos-arm64.deb
+dpkg -i dev.drel.droidsb_0.1.3_iphoneos-arm64.deb
 killall -9 SpringBoard
 # Removal:
 apt remove dev.drel.droidsb

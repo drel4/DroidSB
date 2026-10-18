@@ -11,6 +11,9 @@ on-device confirmation.
 v0.1.2 corrects the oversized v0.1.1 VPN glyph using Android's actual VPN slot
 drawable and 15dp system-icon viewport sizing. See [VPN-SIZING.md](VPN-SIZING.md).
 
+v0.1.3 intentionally ignores iOS back/forward navigation entries. Opening an app
+from App Store or a deep link should retain DroidSB without a breadcrumb button.
+
 ## Required before claiming stable
 
 - Install rootless package; verify SpringBoard and Settings start without crashes.
@@ -26,6 +29,11 @@ drawable and 15dp system-icon viewport sizing. See [VPN-SIZING.md](VPN-SIZING.md
   13pt optical size. Test both with and without LineageQS installed; verify shared
   font registration does not affect either tweak. Battery digits remain vectors.
 - Lock/unlock, landscape, app switcher, launch/exit full-screen apps, rotation.
+- Open an installed app using App Store's Open button; follow an app link from
+  Safari/Mail. Verify DroidSB remains visible, with no "Back to" or forward
+  breadcrumb. Check that real call/privacy activity still falls back to stock.
+- Toggle DroidSB off while a breadcrumb is active: the native breadcrumb and
+  bar should return unchanged. Re-enable and confirm only the breadcrumb vanishes.
 - Connect/disconnect AirPods with VPN active, both unlocked and on the lock
   screen. Verify DroidSB stays visible, the VPN key is legible, and phone battery
   does not change to the AirPods battery. Check VoiceOver accessory percentage.
@@ -42,7 +50,7 @@ drawable and 15dp system-icon viewport sizing. See [VPN-SIZING.md](VPN-SIZING.md
 
 ## Current limitations
 
-No app-notification icons, dual-SIM composition, custom font, Android RAT enum
+No app-notification icons, dual-SIM composition, custom font selection, Android RAT enum
 translation, fancy battery interpolation or background service. Unsupported active
 entries intentionally fall back to the native bar. Apps drawing their own custom
 status bar and legacy hosts other than `_UIStatusBar` remain untouched.
