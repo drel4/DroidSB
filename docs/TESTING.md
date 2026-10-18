@@ -18,6 +18,9 @@ User confirmed that rotation lock caused the persistent stock bar, and reported
 the same during recording. v0.1.4 handles rotation lock and identified screen
 recording, and repairs attachment/early-resource recovery. Needs device testing.
 
+v0.1.5 follows Android's default rotation-icon exclusion and keeps the ordinary
+clock visible while collapsing recording text to an icon-only chip when needed.
+
 ## Required before claiming stable
 
 - Install rootless package; verify SpringBoard and Settings start without crashes.
@@ -34,9 +37,13 @@ recording, and repairs attachment/early-resource recovery. Needs device testing.
   font registration does not affect either tweak. Battery digits remain vectors.
 - Lock/unlock, landscape, app switcher, launch/exit full-screen apps, rotation.
 - Toggle rotation lock in Control Center/LineageQS, leave it enabled, and respring
-  repeatedly. DroidSB should stay visible on the Home Screen and inside apps.
+  repeatedly. DroidSB should stay visible on the Home Screen and inside apps,
+  with no rotation-lock glyph (the default Android exclusion).
 - Start screen recording, switch apps, stop it, and record again. Check the red
   chip/timer, clock and system icons fit the 20pt SE bar without overlapping.
+- Add VPN/Bluetooth/other status icons while recording, then remove them. The
+  chip should shrink to icon-only before truncating the clock, and expand again
+  when room permits. Tapping and VoiceOver should work in both layouts.
 - Tap the red chip: native recording confirmation/control should open when its
   action is exposed; otherwise show the Control Center instruction. Confirm Stop
   saves the video, Cancel continues recording, and there is no duplicate action.

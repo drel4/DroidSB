@@ -6,6 +6,7 @@
 #import "DSBFont.h"
 #import "DSBRecordingChip.h"
 #import "DSBStatusPolicy.h"
+#import "DSBRecordingLayout.h"
 #import <CoreFoundation/CoreFoundation.h>
 
 static NSString *const Domain = @"dev.drel.droidsb";
@@ -249,10 +250,8 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     NSMutableArray *names = [NSMutableArray new];
     // Android right-side ordering: policy icons, airplane/mobile, Wi-Fi, battery.
     if (EnabledEntry(data, @"lockEntry")) [names addObject:@"ic_device_lock_on"];
-    if (EnabledEntry(data, @"rotationLockEntry")) {
-        BOOL landscape = UIInterfaceOrientationIsLandscape(bar.window.windowScene.interfaceOrientation);
-        [names addObject:landscape ? @"stat_sys_rotate_landscape" : @"stat_sys_rotate_portrait"];
-    }
+    // Android config_statusBarIconsToExclude hides status_bar_rotate by default.
+    // The entry is handled by the policy (no stock fallback), but not drawn.
     if (EnabledEntry(data, @"alarmEntry")) [names addObject:@"ic_alarm"];
     if (EnabledEntry(data, @"quietModeEntry")) [names addObject:@"ic_qs_dnd"];
     if (EnabledEntry(data, @"locationEntry")) [names addObject:@"ic_location"];
@@ -330,8 +329,10 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         CGFloat h = MIN(24, MAX(0, height - 2));
         CGSize desired = [_recordingChip sizeThatFits:CGSizeMake(100, h)];
         CGFloat room = MAX(0, right - left - 5);
-        CGFloat chipWidth = MIN(desired.width, room);
-        CGFloat clockWidth = MIN([_clock sizeThatFits:CGSizeMake(100, 16)].width, MAX(0, room - chipWidth - 5));
+        DSBRecordingLayout layout = DSBLayoutRecording(room,
+            [_clock sizeThatFits:CGSizeMake(100, 16)].width, desired.width,
+            [_recordingChip minimumWidthForHeight:h]);
+        CGFloat chipWidth = layout.chipWidth, clockWidth = layout.clockWidth;
         _clock.frame = CGRectMake(left, center - 8, clockWidth, 16);
         CGFloat chipX = left + clockWidth + (clockWidth > 0 ? 5 : 0);
         _recordingChip.frame = CGRectMake(chipX, center - h/2, chipWidth, h);

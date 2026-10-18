@@ -12,6 +12,14 @@ The checked chip/model/background and legacy `ScreenRecordDrawable` do **not**
 contain a continuous color pulse. Launch/return transitions are separate. This
 port does not invent a pulse, or recreate Android's countdown/toolbar.
 
+`ChipContent.hideTextIfDoesNotFit` removes timer text if it does not completely
+fit, leaving the icon centered in the red chip. `OngoingActivityChipsViewModel`
+can also select `Content.IconOnly` for multiple chips on narrow displays. Neither
+changes the chip into the ordinary clock. DroidSB v0.1.5 preserves the clock's
+natural width first, then chooses full icon+timer or a compact icon-only chip.
+It re-expands as space becomes available; it does not collapse after an invented
+timeout. Multiple simultaneous Android-style chips are not implemented here.
+
 ## Tapping / stopping
 
 Android's chip uses an expand action to open a recording toolbar or confirmation
@@ -42,8 +50,11 @@ The timer is invalidated on detach/fallback and captures the view weakly.
 ## Persistent rotation lock and recovery
 
 The previous generic fallback treated `rotationLockEntry` as unsupported. Since
-the setting persists, respringing did not help. It now has Android's portrait /
-landscape rotation-lock glyph and is covered by executable policy regressions.
+the setting persists, respringing did not help. It is now recognized by policy
+and covered by executable regressions. Although `PhoneStatusBarPolicy` retains
+rotation-lock drawing code, `config_statusBarIconsToExclude` explicitly excludes
+`status_bar_rotate`. v0.1.5 follows that default and draws no rotation-lock icon;
+the v0.1.4 icon was an incorrect reading of the drawable/policy alone.
 
 The associated replacement is reattached if UIKit removes its view, and retried
 on window attachment. Empty asset/font reads are no longer cached permanently;

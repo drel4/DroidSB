@@ -185,6 +185,30 @@
     {
       "path": "packages/SystemUI/src/com/android/systemui/statusbar/ScreenRecordDrawable.java",
       "sha256": "0c30f9fc558f22172b4568cc4a6b785f31825b1302ed89da933c9659fb424be4"
+    },
+    {
+      "path": "packages/SystemUI/res/values/config.xml",
+      "sha256": "66f5c10a5207734b3fc955fbea7c048afdd029460d8f7f5c40d20d189e4a0df8"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBarPolicy.java",
+      "sha256": "3dd02d035ce292645209cdb48673e385455f42e71d0bc8bce7ca34ea6a7768a9"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/compose/ChipContent.kt",
+      "sha256": "232c1f8dc98a852e6381a0fcb98395738b9aba59b35f9919a40da4b0a157be01"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/compose/OngoingActivityChips.kt",
+      "sha256": "81545abf69bceb2d12e4a57969a91e526d6844235e053a2e05f2250b3f342ad8"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/viewmodel/OngoingActivityChipsViewModel.kt",
+      "sha256": "a8876ee6a225da2f988a78807f64e9aa78d5e7c13811c87c069f63eda14f7916"
+    },
+    {
+      "path": "packages/SystemUI/pods/statusbar/chips/ui/src/api/compose/HideTextIfDoesNotFitElement.kt",
+      "sha256": "97749946c10fa0a26ac5eb4f01bd6f68a1be7f6ad8d5c6c435b318887c5da693"
     }
   ]
 }

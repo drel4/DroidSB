@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "DSBStatusPolicy.h"
+#include "DSBRecordingLayout.h"
 #include <assert.h>
 
 static bool stock(const char *const *active, size_t count, bool recording) {
@@ -20,5 +21,21 @@ int main(void) {
     assert(DSBEntryRequiresNative("secondaryCellularEntry", true));
     assert(DSBEntryRequiresNative("futureUnknownEntry", false));
     assert(DSBEntryRequiresNative(NULL, false));
+    // The clock survives chip collapse; the red chip wraps its icon instead of
+    // preserving a timer-sized empty background or changing into the clock.
+    DSBRecordingLayout layout = DSBLayoutRecording(120, 40, 60, 26);
+    assert(layout.clockWidth == 40 && layout.chipWidth == 60);
+    layout = DSBLayoutRecording(100, 40, 60, 26);
+    assert(layout.clockWidth == 40 && layout.chipWidth == 26);
+    layout = DSBLayoutRecording(71, 40, 60, 26);
+    assert(layout.clockWidth == 40 && layout.chipWidth == 26);
+    layout = DSBLayoutRecording(105, 40, 60, 26);
+    assert(layout.clockWidth == 40 && layout.chipWidth == 60);
+    layout = DSBLayoutRecording(20, 40, 60, 26);
+    assert(layout.clockWidth == 0 && layout.chipWidth == 20);
+    layout = DSBLayoutRecording(-1, 40, 60, 26);
+    assert(layout.clockWidth == 0 && layout.chipWidth == 0);
+    layout = DSBLayoutRecording(60, 0, 60, 26);
+    assert(layout.clockWidth == 0 && layout.chipWidth == 60);
     return 0;
 }

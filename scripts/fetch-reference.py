@@ -47,6 +47,12 @@ FILES = [
     "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/compose/OngoingActivityChip.kt",
     "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/view/ChipBackgroundContainer.kt",
     "packages/SystemUI/src/com/android/systemui/statusbar/ScreenRecordDrawable.java",
+    "packages/SystemUI/res/values/config.xml",
+    "packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBarPolicy.java",
+    "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/compose/ChipContent.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/compose/OngoingActivityChips.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/viewmodel/OngoingActivityChipsViewModel.kt",
+    "packages/SystemUI/pods/statusbar/chips/ui/src/api/compose/HideTextIfDoesNotFitElement.kt",
 ]
 OUT = Path(__file__).resolve().parents[1] / "reference" / "upstream"
 

@@ -109,13 +109,17 @@ BOOL DSBPerformRecordingAction(UIView *bar) {
     [self setNeedsLayout];
 }
 - (CGSize)sizeThatFits:(CGSize)size {
-    return CGSizeMake(6 + 16 + 4 + ceil([_timer sizeThatFits:CGSizeMake(100, 18)].width) + 6, MIN(24, size.height));
+    CGFloat h = MAX(0, MIN(24, size.height));
+    return CGSizeMake([self minimumWidthForHeight:h] + 4 + ceil([_timer sizeThatFits:CGSizeMake(100, h)].width), h);
+}
+- (CGFloat)minimumWidthForHeight:(CGFloat)height {
+    return 12 + MIN(16, MAX(0, height - 4));
 }
 - (void)layoutSubviews {
     [super layoutSubviews];
     CGFloat h = self.bounds.size.height;
     self.layer.cornerRadius = h / 2;
-    CGFloat side = MIN(16, h - 4);
+    CGFloat side = MIN(16, MAX(0, h - 4));
     BOOL textFits = self.bounds.size.width >= 6 + side + 4 + [_timer sizeThatFits:CGSizeMake(100, h)].width + 6;
     _timer.hidden = !textFits;
     _icon.frame = CGRectMake(textFits ? 6 : (self.bounds.size.width - side)/2, (h-side)/2, side, side);
