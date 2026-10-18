@@ -5,7 +5,6 @@
 #import "DSBAssets.h"
 #import "DSBFont.h"
 #import "DSBRecordingChip.h"
-#import "DSBStatusPolicy.h"
 #import "DSBRecordingLayout.h"
 #import <CoreFoundation/CoreFoundation.h>
 
@@ -48,7 +47,6 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     UILabel *_network;
     DSBRecordingChip *_recordingChip;
     NSTimer *_recordingTimer;
-    NSString *_lastFallback;
     BOOL _recoveryQueued;
     NSUInteger _recoveryAttempts;
 }
@@ -147,30 +145,15 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         if (view.window) [view refresh];
     });
 }
-- (BOOL)mustKeepNative:(id)data screenRecording:(BOOL)recording {
-    // Unknown active entries are retained as a complete stock bar. This also
-    // preserves native actionable call/recording/hotspot chips and sensor dots.
-    id keys = DSBRead(data, @"existingEntryKeys");
-    if (![keys conformsToProtocol:@protocol(NSFastEnumeration)]) return YES;
-    for (NSString *key in keys) {
-        if (EnabledEntry(data, key) && DSBEntryRequiresNative(key.UTF8String, recording)) {
-            NSString *reason = [@"entry:" stringByAppendingString:key];
-            if (![_lastFallback isEqual:reason]) NSLog(@"[DroidSB] Native fallback: %@", reason);
-            _lastFallback = reason;
-            return YES;
-        }
-    }
-    // A second SIM needs separate attribution/VoWiFi handling, not a guessed bar.
-    if (EnabledEntry(data, @"secondaryCellularEntry")) return YES;
-    return NO;
-}
 - (BOOL)refresh {
     UIView *bar = self.nativeBar;
     id data = DSBRead(bar, @"currentAggregatedData") ?: DSBRead(bar, @"currentData");
     UIView *foreground = DSBRead(bar, @"foregroundView");
     BOOL recording = DSBIsScreenRecording(bar, data);
     BOOL assetsReady = DSBIcon(@"ic_wifi_3", 12) && DSBBatteryGlyphs().count;
-    if (!DSBEnabled() || !bar || !data || ![foreground isKindOfClass:UIView.class] || !assetsReady || [self mustKeepNative:data screenRecording:recording]) {
+    // Status entries never switch the bar back to iOS. The network spinner
+    // and other unported entries are omitted, not treated as renderer failure.
+    if (!DSBEnabled() || !bar || !data || ![foreground isKindOfClass:UIView.class] || !assetsReady) {
         [self restoreNative];
         if (DSBEnabled() && bar && (!data || ![foreground isKindOfClass:UIView.class] || !assetsReady)) [self scheduleRecovery];
         return NO;
@@ -182,7 +165,6 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     }
     foreground.alpha = 0; // leave native layout/data and status-bar gestures intact
     self.hidden = NO;
-    _lastFallback = nil;
     _recoveryAttempts = 0;
     _clock.font = DSBSansFont(13, 500);
     _network.font = DSBSansFont(9, 700);
@@ -251,7 +233,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     // Android right-side ordering: policy icons, airplane/mobile, Wi-Fi, battery.
     if (EnabledEntry(data, @"lockEntry")) [names addObject:@"ic_device_lock_on"];
     // Android config_statusBarIconsToExclude hides status_bar_rotate by default.
-    // The entry is handled by the policy (no stock fallback), but not drawn.
+    // No status-entry fallback exists; rotation lock is simply not drawn.
     if (EnabledEntry(data, @"alarmEntry")) [names addObject:@"ic_alarm"];
     if (EnabledEntry(data, @"quietModeEntry")) [names addObject:@"ic_qs_dnd"];
     if (EnabledEntry(data, @"locationEntry")) [names addObject:@"ic_location"];

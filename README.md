@@ -35,10 +35,13 @@ need device validation; the original SE cannot run iOS 16.
 - Leaves LineageQS's own QS header alone; no dependency on LineageQS.
 - Omits iOS-only cross-app navigation breadcrumbs ("Back to App Store", etc.)
   without reverting to the stock bar or adding a replacement button.
+- No status-entry-triggered stock-bar fallback. The native network-activity
+  spinner, rotation lock and other unported indicators are omitted instead.
 
-Calls, hotspot chips, privacy indicators, dual SIM and other unsupported
-active native entries use the **complete stock bar**. This is intentional in this
-first version. Notification app icons are not ported yet. Carrier RAT labels
+Unported call/hotspot/privacy/secondary-SIM indicators are not recreated and do
+not restore the stock bar. Stock visuals are used only when the tweak is disabled
+or rendering prerequisites (host/data/assets) are unavailable. Notification app
+icons are not ported yet. Carrier RAT labels
 appear only when iOS supplies a recognized string;
 the tweak does not guess private numeric enums. Google Sans Flex is bundled under
 SIL OFL 1.1 and does not require LineageQS to be installed. The system font is

@@ -39,26 +39,25 @@ This private-API path still requires validation on the test iPhone.
 an enabled native background activity plus native recording symbol/red-color
 evidence while capture is active. The native activity type number is passed back
 to UIKit's own symbol/color helpers, not interpreted through a guessed enum.
-Unclassified activity stays native; the initial countdown may therefore stay
-native until capture starts. Camera/microphone privacy entries still retain the
-stock bar, including when recording with additional privacy activity.
+As of v0.1.5, unclassified activity does not restore the native bar. During the
+initial countdown a chip may not appear until capture starts. Other unported
+native activity/privacy indicators are omitted rather than causing reversion.
 
 The timer uses a plausible native `displayStartDate` rather than starting over
 when a view is recreated. If no usable start date is available, display `REC`.
-The timer is invalidated on detach/fallback and captures the view weakly.
+The timer is invalidated on detach/disable/unavailable rendering and captures the view weakly.
 
 ## Persistent rotation lock and recovery
 
 The previous generic fallback treated `rotationLockEntry` as unsupported. Since
-the setting persists, respringing did not help. It is now recognized by policy
-and covered by executable regressions. Although `PhoneStatusBarPolicy` retains
+the setting persists, respringing did not help. v0.1.5 removes status-entry
+fallback entirely (including network activity's spinning wheel). Although `PhoneStatusBarPolicy` retains
 rotation-lock drawing code, `config_statusBarIconsToExclude` explicitly excludes
 `status_bar_rotate`. v0.1.5 follows that default and draws no rotation-lock icon;
 the v0.1.4 icon was an incorrect reading of the drawable/policy alone.
 
 The associated replacement is reattached if UIKit removes its view, and retried
 on window attachment. Empty asset/font reads are no longer cached permanently;
-missing prerequisites get up to eight delayed retries. Unknown active entries
-still preserve stock, with `[DroidSB] Native fallback: entry:...` in the process
-log when the reason changes. These recovery fixes are separate from the user's
-confirmed rotation-lock cause.
+missing prerequisites get up to eight delayed retries. Stock is restored only
+when disabled or the renderer lacks a usable host, data or assets. Recovery fixes
+are separate from the user's confirmed status-entry causes.

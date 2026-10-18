@@ -7,7 +7,7 @@ if [[ -n "${DROIDSB_TOOLCHAIN:-}" ]]; then
     toolchain_args+=("SDKBINPATH=$DROIDSB_TOOLCHAIN/bin")
 fi
 python3 scripts/check-source.py
-bash scripts/test-policy.sh
+bash scripts/test-layout.sh
 make clean "${toolchain_args[@]}"
 build_stamp="$(mktemp)"
 trap 'rm -f "$build_stamp"' EXIT

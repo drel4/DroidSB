@@ -20,6 +20,7 @@ recording, and repairs attachment/early-resource recovery. Needs device testing.
 
 v0.1.5 follows Android's default rotation-icon exclusion and keeps the ordinary
 clock visible while collapsing recording text to an icon-only chip when needed.
+It also removes status-entry-triggered stock fallback, including network activity.
 
 ## Required before claiming stable
 
@@ -49,11 +50,11 @@ clock visible while collapsing recording text to an icon-only chip when needed.
   saves the video, Cancel continues recording, and there is no duplicate action.
 - Check recording after lock/unlock/rotation; elapsed time must not reset due to
   view recreation. With an invalid/missing timestamp, show REC rather than zero.
-- Check calls, mirroring and camera/mic access while recording. Keep stock where
-  the activity cannot be identified or native privacy indicators are needed.
+- Check calls, mirroring and camera/mic access while recording. DroidSB should
+  remain visible; unported native indicators are omitted, not converted.
 - Open an installed app using App Store's Open button; follow an app link from
   Safari/Mail. Verify DroidSB remains visible, with no "Back to" or forward
-  breadcrumb. Check that real call/privacy activity still falls back to stock.
+  breadcrumb. Native status entries must not restore the stock bar.
 - Toggle DroidSB off while a breadcrumb is active: the native breadcrumb and
   bar should return unchanged. Re-enable and confirm only the breadcrumb vanishes.
 - Connect/disconnect AirPods with VPN active, both unlocked and on the lock
@@ -62,8 +63,8 @@ clock visible while collapsing recording text to an icon-only chip when needed.
 - Lock/unlock with and without Touch ID/passcode. Confirm the small clock is
   not duplicated when iOS hides it; carrier and lock indicator use DroidSB.
 - Verify scroll-to-top, Control Center gestures and VoiceOver clock/battery labels.
-- Confirm calls and camera/mic indicators revert to stock; verify
-  the Android VPN/location/DND glyphs track native enabled state.
+- Trigger network activity/spinning wheel, calls and camera/mic activity: the
+  bar must remain DroidSB. Verify VPN/location/DND glyphs still track native state.
 - Enable/disable repeatedly in Settings; confirm no invisible or double foreground.
 - Install alongside LineageQS; confirm its shade and header are unchanged.
 - Inspect SpringBoard/app crash logs; verify safe-mode recovery and removal.
@@ -73,6 +74,6 @@ clock visible while collapsing recording text to an icon-only chip when needed.
 ## Current limitations
 
 No app-notification icons, dual-SIM composition, custom font selection, Android RAT enum
-translation, fancy battery interpolation or background service. Unsupported active
-entries intentionally fall back to the native bar. Apps drawing their own custom
+translation, fancy battery interpolation or background service. Unported active
+entries are omitted; there is no status-entry fallback. Apps drawing their own custom
 status bar and legacy hosts other than `_UIStatusBar` remain untouched.
