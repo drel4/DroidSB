@@ -168,7 +168,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     if (EnabledEntry(data, @"alarmEntry")) [names addObject:@"ic_alarm"];
     if (EnabledEntry(data, @"quietModeEntry")) [names addObject:@"ic_qs_dnd"];
     if (EnabledEntry(data, @"locationEntry")) [names addObject:@"ic_location"];
-    if (EnabledEntry(data, @"vpnEntry")) [names addObject:@"ic_statusbar_vpn"];
+    if (EnabledEntry(data, @"vpnEntry")) [names addObject:@"stat_sys_vpn_ic"];
     if (EnabledEntry(data, @"bluetoothEntry")) [names addObject:@"ic_bluetooth_connected"];
     BOOL airplane = EnabledEntry(data, @"airplaneModeEntry");
     BOOL wifi = EnabledEntry(data, @"wifiEntry");
@@ -184,7 +184,11 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     }
     for (NSUInteger i = 0; i < _icons.count; i++) {
         _icons[i].hidden = i >= names.count;
-        _icons[i].image = i < names.count ? DSBIcon(names[i], 12) : nil;
+        // StatusBarSignalPolicy selects stat_sys_vpn_ic (17dp intrinsic).
+        // StatusBarIconView scales its FULL viewport to 15dp, not its path
+        // bounds. Updated connectivity icons keep their separate 12sp size.
+        CGFloat iconHeight = i < names.count && [names[i] isEqualToString:@"stat_sys_vpn_ic"] ? 15 : 12;
+        _icons[i].image = i < names.count ? DSBIcon(names[i], iconHeight) : nil;
         _icons[i].isAccessibilityElement = NO;
         _icons[i].accessibilityLabel = nil;
         if (i < names.count && [names[i] isEqualToString:@"ic_bluetooth_connected"]) {
@@ -225,7 +229,8 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     for (UIImageView *icon in _icons.reverseObjectEnumerator) {
         if (icon.hidden) continue;
         CGFloat iw = icon.image.size.width;
-        icon.frame = CGRectMake(right - iw, center - 6, iw, 12);
+        CGFloat ih = icon.image.size.height;
+        icon.frame = CGRectMake(right - iw, center - ih / 2, iw, ih);
         right -= iw + 4;
     }
     CGSize ns = [_network sizeThatFits:CGSizeMake(40, 14)];

@@ -18,7 +18,7 @@ subprocess.run([sys.executable, str(ROOT / "scripts/export-assets.py")], check=T
 assert before == {p.name: p.read_bytes() for p in assets.glob("*.json")}, "Generated catalogs are stale"
 icons = json.loads((assets / "icons.json").read_text())
 for name in [*[f"ic_wifi_{i}" for i in range(4)], *[f"ic_mobile_{i}_4_bar" for i in range(5)],
-             "ic_alarm", "stat_sys_airplane_mode", "ic_qs_dnd", "ic_location", "ic_statusbar_vpn",
+             "ic_alarm", "stat_sys_airplane_mode", "ic_qs_dnd", "ic_location", "stat_sys_vpn_ic",
              "ic_bluetooth_connected", "ic_device_lock_on"]:
     assert name in icons and icons[name]["w"] > 0 and icons[name]["h"] > 0, name
 glyphs = json.loads((assets / "battery-glyphs.json").read_text())

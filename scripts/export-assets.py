@@ -12,7 +12,7 @@ A = "{http://schemas.android.com/apk/res/android}"
 assets = {}
 paths = list((SRC / "packages/SettingsLib/res/drawable").glob("ic_*.xml"))
 paths += [SRC / f"packages/SystemUI/res/drawable/{n}.xml" for n in
-          ("stat_sys_airplane_mode", "ic_alarm", "ic_statusbar_vpn", "ic_location",
+          ("stat_sys_airplane_mode", "ic_alarm", "stat_sys_vpn_ic", "ic_location",
            "ic_bluetooth_connected", "ic_device_lock_on")]
 paths += [SRC / "core/res/res/drawable/ic_qs_dnd.xml"]
 for path in sorted(paths):
@@ -40,11 +40,6 @@ for path in sorted(paths):
         "h": float(root.attrib[A + "viewportHeight"]),
         "paths": nodes(root),
     }
-    # The 24x24 VPN viewport contains a short, wide key. Rendering that entire
-    # viewport at 12pt made the visible key only 5.75pt tall. Preserve upstream
-    # paths; fit their actual bounds instead (x=2..22, y=6.5..18).
-    if path.stem == "ic_statusbar_vpn":
-        assets[path.stem]["renderBounds"] = [2, 6.5, 20, 11.5]
 glyph_source = (SRC / "packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/shared/ui/BatteryGlyph.kt").read_text()
 glyphs = {}
 for name, block in re.findall(r"data object (\w+) : BatteryGlyph \{(.*?)(?=\n    data object|\n\})", glyph_source, re.S):

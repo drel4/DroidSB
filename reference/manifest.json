@@ -125,6 +125,22 @@
     {
       "path": "packages/SystemUI/res/drawable/ic_device_lock_on.xml",
       "sha256": "bd5a75b8864b160231270fb884af5d5e6de14360e81316e1fd0ab5de2a371663"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/stat_sys_vpn_ic.xml",
+      "sha256": "9ce5eefcdffdf4656015cb89d0a4e391fabba3995514cca722ac54d304c879a9"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/phone/StatusBarSignalPolicy.java",
+      "sha256": "6ca09e53ab2b45e11d7f49809ac292d3c9344dcf272621ad91ad85e5b3fd993a"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java",
+      "sha256": "4e8cd1312cbcfd93f1d18920dd632325a1a89113dbac6b623efe7b7b79fa4f11"
+    },
+    {
+      "path": "core/res/res/values/dimens.xml",
+      "sha256": "d19aa609fe63c6e9626c671fb6e92a765327d2e08c377cd2e303cbdad117cd45"
     }
   ]
 }

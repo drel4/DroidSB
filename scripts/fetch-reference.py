@@ -32,6 +32,10 @@ FILES = [
     "core/res/res/drawable/ic_qs_dnd.xml",
     "packages/SystemUI/res/drawable/ic_bluetooth_connected.xml",
     "packages/SystemUI/res/drawable/ic_device_lock_on.xml",
+    "packages/SystemUI/res/drawable/stat_sys_vpn_ic.xml",
+    "packages/SystemUI/src/com/android/systemui/statusbar/phone/StatusBarSignalPolicy.java",
+    "packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java",
+    "core/res/res/values/dimens.xml",
 ]
 OUT = Path(__file__).resolve().parents[1] / "reference" / "upstream"
 

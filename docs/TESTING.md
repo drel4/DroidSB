@@ -8,6 +8,9 @@ AirPods restored stock, and the lock screen remained stock. v0.1.1 handles
 Bluetooth/lock entries and fits the VPN artwork to 12pt; these fixes still need
 on-device confirmation.
 
+v0.1.2 corrects the oversized v0.1.1 VPN glyph using Android's actual VPN slot
+drawable and 15dp system-icon viewport sizing. See [VPN-SIZING.md](VPN-SIZING.md).
+
 ## Required before claiming stable
 
 - Install rootless package; verify SpringBoard and Settings start without crashes.
