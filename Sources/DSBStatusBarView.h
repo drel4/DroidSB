@@ -2,6 +2,8 @@
 #import <UIKit/UIKit.h>
 @interface DSBStatusBarView : UIView
 @property(nonatomic, weak) UIView *nativeBar;
+@property(nonatomic) BOOL transientPresentation;
+@property(nonatomic, weak) UIView *actionBar;
 - (BOOL)refresh;
 - (void)restoreNative;
 - (BOOL)recordingChipContainsPoint:(CGPoint)point;

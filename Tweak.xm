@@ -3,13 +3,17 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import "DSBStatusBarView.h"
+#import "DSBTransientBar.h"
 
 @interface _UIStatusBar : UIView
+@end
+@interface SBGrabberTongue : NSObject
 @end
 
 static char ViewKey;
 static char UpdatingKey;
 static void Update(UIView *bar) {
+    DSBObserveNativeBar(bar);
     if ([objc_getAssociatedObject(bar, &UpdatingKey) boolValue]) return;
     objc_setAssociatedObject(bar, &UpdatingKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     @try {
@@ -54,12 +58,43 @@ static void Update(UIView *bar) {
 }
 %end
 
+%group Fullscreen
+%hook SBGrabberTongue
+- (void)_presentTongueAnimated:(BOOL)animated autoDismiss:(BOOL)autoDismiss {
+    %orig;
+    DSBPresentTransientBar(self, animated);
+}
+- (void)_dismissTongueWithStyle:(NSInteger)style animated:(BOOL)animated {
+    DSBDismissTransientBar(self, animated);
+    %orig;
+}
+- (void)_willDismiss {
+    DSBDismissTransientBar(self, YES);
+    %orig;
+}
+- (void)_didDismiss {
+    DSBDismissTransientBar(self, NO);
+    %orig;
+}
+- (void)uninstall {
+    DSBDismissTransientBar(self, NO);
+    %orig;
+}
+- (void)invalidate {
+    DSBDismissTransientBar(self, NO);
+    %orig;
+}
+%end
+%end
+
 %ctor {
     @autoreleasepool {
         // UIKit bundle filtering covers SpringBoard and app-owned status bars;
-        // do not inject custom windows or rely on SpringBoard-only telemetry.
+        // The ordinary row stays native-hosted. Fullscreen grabbers are hooked
+        // separately only where SpringBoard provides their owning class.
         if (@available(iOS 15.0, *)) {
             if (NSClassFromString(@"_UIStatusBar")) { %init; }
+            if (NSClassFromString(@"SBGrabberTongue")) { %init(Fullscreen); }
         }
     }
 }

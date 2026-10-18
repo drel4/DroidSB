@@ -16,6 +16,8 @@ and the LineageOS android_frameworks_base tree, licensed under Apache 2.0:
   cellular drawables (design references).
 - SystemUI ScreenRecordChipViewModel, ColorsModel.Red, ongoing activity chip
   layout/dimensions/colours and drawing code (recording chip design and references).
+- Framework InsetsController/InsetsPolicy and SystemUI bar transitions
+  (transient status-bar animation timing and easing references).
 
 Copyright (C) 2017-2025 The Android Open Source Project, and the respective
 contributors identified in the retained upstream file headers and git history.

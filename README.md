@@ -5,7 +5,7 @@ the native iOS status-bar host. Designed to pair with
 [LineageQS](https://github.com/drel4/LineageQS).
 
 **Status: experimental. v0.1.0 confirmed working by the user on the SE below;
-Updates, including v0.1.5 default icon visibility and recording-chip layout, still need device confirmation.**
+Updates, including v0.1.6 fullscreen transient presentation, still need device confirmation.**
 Primary test target: iPhone SE (2016), iOS 15.8.2, rootless jailbreak.
 arm64 (SE/A9) and arm64e slices are included. iOS 16 and notched layouts still
 need device validation; the original SE cannot run iOS 16.
@@ -37,6 +37,10 @@ need device validation; the original SE cannot run iOS 16.
   without reverting to the stock bar or adding a replacement button.
 - No status-entry-triggered stock-bar fallback. The native network-activity
   spinner, rotation lock and other unported indicators are omitted instead.
+- Fullscreen top-edge first swipe: a temporary live DroidSB row replaces the
+  native arrow, with Android's 275/340 ms slide and easing. Native second-swipe
+  routing and auto-dismiss remain; Reduce Motion is respected.
+  See [fullscreen behavior](docs/FULLSCREEN.md).
 
 Unported call/hotspot/privacy/secondary-SIM indicators are not recreated and do
 not restore the stock bar. Stock visuals are used only when the tweak is disabled
@@ -81,7 +85,7 @@ tweaks before testing. Toggle Enabled off to restore stock visuals; uninstall
 From a device shell with root privileges:
 
 ```sh
-dpkg -i dev.drel.droidsb_0.1.5_iphoneos-arm64.deb
+dpkg -i dev.drel.droidsb_0.1.6_iphoneos-arm64.deb
 killall -9 SpringBoard
 # Removal:
 apt remove dev.drel.droidsb

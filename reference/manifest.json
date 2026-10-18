@@ -3,6 +3,22 @@
   "commit": "7f6de40b6429462d47ba9ba351b99943269c8067",
   "files": [
     {
+      "path": "core/java/android/view/InsetsController.java",
+      "sha256": "aad3781a9367b2a3a721507c430445fbcd40a5ab8d4cd5ac045971c2c7b8e44e"
+    },
+    {
+      "path": "services/core/java/com/android/server/wm/InsetsPolicy.java",
+      "sha256": "9ac737cf40df869584b18507044e8b297bf69cda4779344f1db7541533e93de6"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBarTransitions.java",
+      "sha256": "b04ba3bad8add28a21a071d61f5278a30f7306dae0b6eba6e1c0e6e5f7556b2e"
+    },
+    {
+      "path": "packages/SystemUI/shared/src/com/android/systemui/shared/statusbar/phone/BarTransitions.java",
+      "sha256": "4393b1374b5534b0a6f40dce7dfbde0cac9d356c72c9fb0784e86e720c8ce85e"
+    },
+    {
       "path": "packages/SystemUI/res/layout/status_bar.xml",
       "sha256": "200b794f557bef899127901010f1b751e3bb6d7bb17466ea48dc7d7a89edd8db"
     },

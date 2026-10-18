@@ -1,6 +1,6 @@
 Package: dev.drel.droidsb
 Name: DroidSB
-Version: 0.1.5
+Version: 0.1.6
 Architecture: iphoneos-arm64
 Description: Android 17 / LineageOS 24 inspired native status bar replacement for iOS 15 and 16.
 Maintainer: drel4

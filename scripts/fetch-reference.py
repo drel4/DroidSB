@@ -13,6 +13,10 @@ import urllib.request
 COMMIT = "7f6de40b6429462d47ba9ba351b99943269c8067"
 BASE = f"https://raw.githubusercontent.com/LineageOS/android_frameworks_base/{COMMIT}/"
 FILES = [
+    "core/java/android/view/InsetsController.java",
+    "services/core/java/com/android/server/wm/InsetsPolicy.java",
+    "packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBarTransitions.java",
+    "packages/SystemUI/shared/src/com/android/systemui/shared/statusbar/phone/BarTransitions.java",
     "packages/SystemUI/res/layout/status_bar.xml",
     "packages/SystemUI/res/values/dimens.xml",
     "packages/SystemUI/src/com/android/systemui/statusbar/pipeline/battery/ui/composable/UnifiedBattery.kt",

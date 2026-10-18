@@ -112,7 +112,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
 }
 - (void)recordingTapped:(id)sender {
     if (_recordingChip.hidden) return;
-    if (DSBPerformRecordingAction(self.nativeBar)) return;
+    if (DSBPerformRecordingAction(self.transientPresentation ? self.actionBar : self.nativeBar)) return;
     // If this iOS build doesn't expose the recording item's native action,
     // explain the supported route instead of showing a nonfunctional Stop button.
     UIViewController *presenter = self.window.rootViewController;
@@ -168,7 +168,9 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     _recoveryAttempts = 0;
     _clock.font = DSBSansFont(13, 500);
     _network.font = DSBSansFont(9, 700);
-    self.frame = bar.bounds;
+    // Avoid assigning frame under the transient slide's nonidentity transform.
+    self.bounds = (CGRect){CGPointZero, bar.bounds.size};
+    self.center = CGPointMake(CGRectGetMidX(bar.bounds), CGRectGetMidY(bar.bounds));
     if (bar.subviews.lastObject != self) [bar bringSubviewToFront:self];
 
     UIColor *ink = DSBRead(bar, @"foregroundColor") ?: DSBRead(DSBRead(bar, @"styleAttributes"), @"textColor");
@@ -188,10 +190,10 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     else [_formatter setLocalizedDateFormatFromTemplate:@"j:mm"];
     // Use the native clock when available: same system update cadence, locale,
     // and accessibility. A user-selected 24h override uses the system date.
-    BOOL timeVisible = EnabledEntry(data, @"timeEntry") || EnabledEntry(data, @"shortTimeEntry");
+    BOOL timeVisible = self.transientPresentation || EnabledEntry(data, @"timeEntry") || EnabledEntry(data, @"shortTimeEntry");
     NSString *nativeTime = DSBRead(DSBRead(data, @"timeEntry"), @"string");
     if (timeVisible) {
-        _clock.text = !Flag(@"Use24HourClock", NO) && nativeTime.length ? nativeTime : [_formatter stringFromDate:NSDate.date];
+        _clock.text = !self.transientPresentation && !Flag(@"Use24HourClock", NO) && nativeTime.length ? nativeTime : [_formatter stringFromDate:NSDate.date];
     } else {
         // Cover Sheet suppresses the small native clock because it already has
         // a large clock. Retain its carrier/device label rather than duplicating

@@ -1,0 +1,29 @@
+# Fullscreen transient status bar
+
+Android does animate its status bar. The pinned LineageOS 24 framework
+[`InsetsController.java`](../reference/upstream/core/java/android/view/InsetsController.java)
+uses a 275 ms slide in and 340 ms slide out for swipe-revealed transient bars,
+with cubic control points `(0.4, 0), (0.2, 1)`. Other policies use fades instead;
+SystemUI also animates icon/background changes. These are distinct animations,
+not a constant pulse on the recording chip.
+
+DroidSB 0.1.6 replaces the top fullscreen first-swipe grabber's arrow visual with
+a temporary live DroidSB row. It uses those slide durations/easing, a dark
+translucent backing for legibility, and white foreground. Reduce Motion skips
+the slide. It does not reveal a permanent status bar or resize the fullscreen app.
+
+The row lives in the existing SpringBoard grabber host, not a new overlay window.
+Scene coordinate conversion accommodates rotated hosts. SpringBoard's existing
+gesture recognizers, native auto-dismiss lifetime, first/second-swipe decisions,
+and LineageQS routing remain intact. The bottom/home grabber is not replaced.
+This is an Android-looking presentation on iOS gesture policy, not a port of
+Android's entire immersive-mode window manager or its timeout policy.
+
+Data comes from SpringBoard's existing `_UIStatusBar` updates in the same process;
+the row also refreshes its clock each second while presented. Recording actions
+are forwarded to the actual source status bar, never to the presentation host.
+Missing host/data/assets leave the grabber alone; native status entries do not
+trigger a stock status-bar fallback. Toggle Disabled restores the native arrow.
+
+Private grabber hooks and landscape presentation require physical iOS 15/16
+testing. Build/package validation cannot establish gesture correctness on device.

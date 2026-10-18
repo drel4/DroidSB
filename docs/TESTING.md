@@ -24,6 +24,15 @@ It also removes status-entry-triggered stock fallback, including network activit
 
 ## Required before claiming stable
 
+- In a fullscreen video/game with deferred top gestures, swipe once: DroidSB
+  should slide in instead of the iOS arrow, without resizing the app. Wait for
+  native auto-dismiss, then repeat. Swipe a second time to open the shade.
+- Repeat fullscreen swipes in both landscape directions, with/without LineageQS,
+  and during recording. Check the clock, live signal/battery, recording tap,
+  rapid dismiss/reveal, rotation while visible, and leaving the fullscreen app.
+- Disable DroidSB while the transient row is visible: it and its timers should
+  disappear and restore the arrow's original visibility. Re-enable and retry.
+  Enable Reduce Motion: the transient row should appear without sliding.
 - Install rootless package; verify SpringBoard and Settings start without crashes.
 - Check 320pt portrait SE layout: clock left, policy/mobile/Wi-Fi/battery right.
 - Compare Wi-Fi levels 0–3, mobile 0–4, airplane + Wi-Fi and no SIM to stock.
