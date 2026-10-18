@@ -2,14 +2,49 @@
 // Copyright 2026 drel4
 #import "DSBTransientBar.h"
 #import "DSBStatusBarView.h"
+#import "DSBTransientGeometry.h"
 #import <objc/runtime.h>
+#import <objc/message.h>
 
 // The native grabber retains recognition, second-swipe routing and auto-dismiss.
 // Only its presentation is replaced; no global gesture recognizer/window is added.
 static char TransientKey;
+static char VisualEdgeKey;
 static id latestData;
 static __weak UIView *latestBar;
 static NSHashTable *presentations;
+
+static BOOL DSBIsTopTongue(id tongue) {
+    id delegate = DSBRead(tongue, @"delegate");
+    Class coverSheet = NSClassFromString(@"SBCoverSheetPrimarySlidingViewController");
+    NSNumber *edge = DSBRead(tongue, @"screenEdge") ?: DSBRead(tongue, @"edge");
+    return (coverSheet && [delegate isKindOfClass:coverSheet])
+        || (edge && edge.unsignedIntegerValue == UIRectEdgeTop);
+}
+
+// Adapted from LineageQS's CaptureTopGrabberVisualEdge (Apache-2.0,
+// Copyright 2026 makr). A grabber's scene can still report portrait while
+// the initiating touch belongs to a landscape app. Cache its physical edge,
+// not just the scene orientation, for both presentation and dismissal.
+void DSBCaptureTransientOrientation(id tongue, UIPanGestureRecognizer *gesture) {
+    if (![gesture isKindOfClass:UIPanGestureRecognizer.class]
+        || gesture.state != UIGestureRecognizerStateBegan || !DSBIsTopTongue(tongue)) return;
+    objc_setAssociatedObject(tongue, &VisualEdgeKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    UIView *host = DSBRead(tongue, @"containingView");
+    if (![host isKindOfClass:UIView.class]) return;
+    UIInterfaceOrientation orientation = host.window.windowScene.interfaceOrientation;
+    SEL selector = NSSelectorFromString(@"_touchInterfaceOrientation");
+    if ([gesture respondsToSelector:selector]) {
+        UIInterfaceOrientation touch = ((UIInterfaceOrientation (*)(id, SEL))objc_msgSend)(gesture, selector);
+        if (touch != UIInterfaceOrientationUnknown) orientation = touch;
+    }
+    if (!UIInterfaceOrientationIsLandscape(orientation)) return;
+    CGPoint point = [gesture locationInView:host], delta = [gesture translationInView:host];
+    CGRect bounds = host.bounds;
+    unsigned edge = DSBStartingEdge(point.x, point.y, delta.x, delta.y,
+        bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height);
+    objc_setAssociatedObject(tongue, &VisualEdgeKey, @(edge), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
 
 @interface DSBTransientHost : UIView
 @property(nonatomic, strong) id currentAggregatedData;
@@ -92,15 +127,10 @@ void DSBDismissTransientBar(id tongue, BOOL animated) {
 
 void DSBPresentTransientBar(id tongue, BOOL animated) {
     if (!DSBEnabled() || !latestData) return;
-    id delegate = DSBRead(tongue, @"delegate");
-    Class coverSheet = NSClassFromString(@"SBCoverSheetPrimarySlidingViewController");
     // Do not replace the bottom Control Center/home-indicator grabber.
-    BOOL top = coverSheet && [delegate isKindOfClass:coverSheet];
-    NSNumber *edge = DSBRead(tongue, @"screenEdge") ?: DSBRead(tongue, @"edge");
-    top = top || (edge && edge.unsignedIntegerValue == UIRectEdgeTop);
     UIView *container = DSBRead(tongue, @"containingView");
     UIView *arrow = DSBRead(tongue, @"tongueContainer");
-    if (!top || ![container isKindOfClass:UIView.class] || !container.window
+    if (!DSBIsTopTongue(tongue) || ![container isKindOfClass:UIView.class] || !container.window
         || ![arrow isKindOfClass:UIView.class]) return;
 
     DSBTransientPresentation *old = objc_getAssociatedObject(tongue, &TransientKey);
@@ -118,8 +148,9 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
     host.foregroundColor = UIColor.whiteColor;
     presentation.host = host;
     [container addSubview:host];
-    // Convert a scene-oriented top row into SpringBoard's host coordinates.
-    // This also covers portrait-aligned hosts while the foreground app rotates.
+    // Prefer the physical edge captured from the touch, as LineageQS does.
+    // Scene-only conversion is a fallback for programmatic presentations;
+    // it cannot detect a portrait-aligned CoverSheet over a landscape app.
     id<UICoordinateSpace> space = container.window.windowScene.coordinateSpace ?: container.window;
     CGRect screen = space.bounds;
     CGFloat height = MAX(20, container.window.safeAreaInsets.top);
@@ -130,6 +161,20 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
     host.bounds = CGRectMake(0, 0, screen.size.width, height);
     host.center = [container convertPoint:CGPointMake(CGRectGetMidX(screen), CGRectGetMinY(screen) + height/2) fromCoordinateSpace:space];
     host.transform = CGAffineTransformMake(px.x-p0.x, px.y-p0.y, py.x-p0.x, py.y-p0.y, 0, 0);
+    NSNumber *visualEdge = objc_getAssociatedObject(tongue, &VisualEdgeKey);
+    // The host keeps the resulting transform through its hide animation.
+    // Consume this touch's edge so a later non-gesture presentation cannot
+    // reuse an old landscape orientation.
+    objc_setAssociatedObject(tongue, &VisualEdgeKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (visualEdge) {
+        CGRect bounds = container.bounds;
+        height = 20; // landscape row, not the portrait host's safe-area top
+        DSBTransientGeometry geometry = DSBGeometryForEdge(visualEdge.unsignedIntValue,
+            bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height, height);
+        host.bounds = CGRectMake(0, 0, geometry.width, geometry.height);
+        host.center = CGPointMake(geometry.centerX, geometry.centerY);
+        host.transform = CGAffineTransformMake(geometry.a, geometry.b, geometry.c, geometry.d, 0, 0);
+    }
     host.renderer = [[DSBStatusBarView alloc] initWithFrame:host.bounds];
     host.renderer.nativeBar = host;
     host.renderer.transientPresentation = YES;

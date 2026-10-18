@@ -6,3 +6,6 @@ trap 'rm -f "$layout_binary"' EXIT
 cc -std=c11 -Wall -Wextra -Werror -ISources tests/recording-layout.c -o "$layout_binary"
 "$layout_binary"
 echo 'PASS: full/compact recording chip, clock preservation, boundary widths and no overlap'
+cc -std=c11 -Wall -Wextra -Werror -ISources tests/transient-geometry.c -o "$layout_binary"
+"$layout_binary"
+echo 'PASS: fullscreen starting edge, both landscape rotations, oriented hosts and outward slide geometry'

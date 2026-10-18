@@ -30,6 +30,10 @@ It also removes status-entry-triggered stock fallback, including network activit
 - Repeat fullscreen swipes in both landscape directions, with/without LineageQS,
   and during recording. Check the clock, live signal/battery, recording tap,
   rapid dismiss/reveal, rotation while visible, and leaving the fullscreen app.
+- v0.1.7 orientation regression: on an SE with a portrait-aligned SpringBoard
+  host, the row should run along the landscape app's top edge, with upright
+  clock/icons, full landscape width and outward hide motion. Test both directions,
+  then return to portrait and repeat; no cached landscape edge should remain.
 - Disable DroidSB while the transient row is visible: it and its timers should
   disappear and restore the arrow's original visibility. Re-enable and retry.
   Enable Reduce Motion: the transient row should appear without sliding.

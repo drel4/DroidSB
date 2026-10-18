@@ -60,6 +60,10 @@ static void Update(UIView *bar) {
 
 %group Fullscreen
 %hook SBGrabberTongue
+- (void)_handlePullGesture:(UIPanGestureRecognizer *)gesture {
+    DSBCaptureTransientOrientation(self, gesture);
+    %orig;
+}
 - (void)_presentTongueAnimated:(BOOL)animated autoDismiss:(BOOL)autoDismiss {
     %orig;
     DSBPresentTransientBar(self, animated);

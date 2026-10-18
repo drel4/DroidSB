@@ -38,6 +38,8 @@ LineageQS, Copyright 2026 makr, licensed under Apache 2.0. Its renderer/theme
 dependencies were removed; the public entry point was renamed for DroidSB.
 Sources/DSBFont.m adapts LineageQS's CoreText variable-font registration and
 weight/optical-size approach, Copyright 2026 makr, Apache License 2.0.
+Sources/DSBTransientBar.m adapts LineageQS's gesture touch-orientation and
+physical grabber-edge capture, Copyright 2026 makr, Apache License 2.0.
 
 Android is a trademark of Google LLC. LineageOS belongs to its respective
 owners. This project is not affiliated with or endorsed by Google or LineageOS.

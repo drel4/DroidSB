@@ -13,7 +13,12 @@ translucent backing for legibility, and white foreground. Reduce Motion skips
 the slide. It does not reveal a permanent status bar or resize the fullscreen app.
 
 The row lives in the existing SpringBoard grabber host, not a new overlay window.
-Scene coordinate conversion accommodates rotated hosts. SpringBoard's existing
+As of 0.1.7, landscape uses LineageQS's gesture touch-orientation and physical
+starting-edge approach: SpringBoard's scene may remain portrait-aligned over
+a landscape app. The row rotates onto the touched edge, and slides outward
+through that same edge on dismissal. Already-oriented hosts are not rotated
+twice. Scene conversion remains the fallback for presentations without a touch.
+SpringBoard's existing
 gesture recognizers, native auto-dismiss lifetime, first/second-swipe decisions,
 and LineageQS routing remain intact. The bottom/home grabber is not replaced.
 This is an Android-looking presentation on iOS gesture policy, not a port of
