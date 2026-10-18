@@ -6,3 +6,7 @@ FOUNDATION_EXPORT void DSBCaptureTransientTouch(id tongue, UIGestureRecognizer *
 FOUNDATION_EXPORT BOOL DSBUsesWideTransientGrabber(id tongue);
 FOUNDATION_EXPORT void DSBPresentTransientBar(id tongue, BOOL animated);
 FOUNDATION_EXPORT void DSBDismissTransientBar(id tongue, BOOL animated);
+FOUNDATION_EXPORT void DSBInitializeTransientAutoHide(void);
+FOUNDATION_EXPORT void DSBObserveTransientEvent(UIEvent *event);
+FOUNDATION_EXPORT void DSBUpdateTransientGesture(id tongue, UIPanGestureRecognizer *gesture);
+FOUNDATION_EXPORT BOOL DSBReplacesNativeTransientDismiss(id tongue);

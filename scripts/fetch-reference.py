@@ -13,6 +13,9 @@ import urllib.request
 COMMIT = "7f6de40b6429462d47ba9ba351b99943269c8067"
 BASE = f"https://raw.githubusercontent.com/LineageOS/android_frameworks_base/{COMMIT}/"
 FILES = [
+    "packages/SystemUI/src/com/android/systemui/statusbar/phone/AutoHideControllerImpl.java",
+    "packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBarViewController.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/phone/CentralSurfacesImpl.java",
     "core/java/android/view/InsetsController.java",
     "services/core/java/com/android/server/wm/InsetsPolicy.java",
     "packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBarTransitions.java",

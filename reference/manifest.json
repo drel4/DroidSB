@@ -3,6 +3,18 @@
   "commit": "7f6de40b6429462d47ba9ba351b99943269c8067",
   "files": [
     {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/phone/AutoHideControllerImpl.java",
+      "sha256": "31d02b91be35471d8a70df744a2e5f84196f4a54ac4230b332484698f749e92e"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBarViewController.kt",
+      "sha256": "22c31409089b22bb89ffeca52f855c1d4e78cf9e18289012c7cc3726d8e1e18f"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/phone/CentralSurfacesImpl.java",
+      "sha256": "dab2372976566576b0a7e1c2d26fa695c5a47f6f6e9c970a8165bc9772521c1c"
+    },
+    {
       "path": "core/java/android/view/InsetsController.java",
       "sha256": "aad3781a9367b2a3a721507c430445fbcd40a5ab8d4cd5ac045971c2c7b8e44e"
     },

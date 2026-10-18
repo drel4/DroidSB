@@ -9,3 +9,6 @@ echo 'PASS: full/compact recording chip, clock preservation, boundary widths and
 cc -std=c11 -Wall -Wextra -Werror -ISources tests/transient-geometry.c -o "$layout_binary"
 "$layout_binary"
 echo 'PASS: fullscreen full-edge/corner starts, first-use coordinate cases, both landscape rotations and outward slide geometry'
+cc -std=c11 -Wall -Wextra -Werror -ISources tests/transient-policy.c -o "$layout_binary"
+"$layout_binary"
+echo 'PASS: Android dismissal timeouts, accessibility extension, fixed-screen hit regions and stale-generation rejection'

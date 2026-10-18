@@ -58,6 +58,13 @@ static void Update(UIView *bar) {
 }
 %end
 
+%hook UIApplication
+- (void)sendEvent:(UIEvent *)event {
+    DSBObserveTransientEvent(event);
+    %orig;
+}
+%end
+
 %group Fullscreen
 %hook SBGrabberTongue
 - (BOOL)isEdgeLocationInGrabberRegion:(double)location {
@@ -70,6 +77,15 @@ static void Update(UIView *bar) {
 }
 - (void)_handlePullGesture:(UIPanGestureRecognizer *)gesture {
     DSBCaptureTransientOrientation(self, gesture);
+    %orig;
+    DSBUpdateTransientGesture(self, gesture);
+}
+- (void)_dismissTongue:(id)sender {
+    if (DSBReplacesNativeTransientDismiss(self)) return;
+    %orig;
+}
+- (void)_handleTapped:(id)sender {
+    if (DSBReplacesNativeTransientDismiss(self)) return;
     %orig;
 }
 - (void)_presentTongueAnimated:(BOOL)animated autoDismiss:(BOOL)autoDismiss {
@@ -105,6 +121,7 @@ static void Update(UIView *bar) {
         // The ordinary row stays native-hosted. Fullscreen grabbers are hooked
         // separately only where SpringBoard provides their owning class.
         if (@available(iOS 15.0, *)) {
+            DSBInitializeTransientAutoHide();
             if (NSClassFromString(@"_UIStatusBar")) { %init; }
             if (NSClassFromString(@"SBGrabberTongue")) { %init(Fullscreen); }
         }
