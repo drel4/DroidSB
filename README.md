@@ -4,7 +4,8 @@ Rootless iOS 15/16 tweak bringing the Android 17 / LineageOS 24 status bar to
 the native iOS status-bar host. Designed to pair with
 [LineageQS](https://github.com/drel4/LineageQS).
 
-**Status: experimental, compiled but not yet tested on physical hardware.**
+**Status: experimental. v0.1.0 confirmed working by the user on the SE below;
+v0.1.1 Bluetooth/lock-screen fixes still need device confirmation.**
 Primary test target: iPhone SE (2016), iOS 15.8.2, rootless jailbreak.
 arm64 (SE/A9) and arm64e slices are included. iOS 16 and notched layouts still
 need device validation; the original SE cannot run iOS 16.
@@ -14,7 +15,10 @@ need device validation; the original SE cannot run iOS 16.
 - Left-aligned, localized clock; Android 17 rounded mobile and Wi-Fi glyphs.
 - Android unified horizontal battery with vector digits, charging bolt,
   power-saving attribution, charge fill and light/dark foreground adaptation.
-- Airplane mode, alarm, DND, VPN and location from iOS's aggregated status data.
+- Airplane mode, alarm, DND, VPN, location, Bluetooth and lock from iOS's status data.
+- Lock-screen carrier label when iOS suppresses the small clock; the large
+  lock-screen clock remains untouched. AirPods accessory battery is exposed to
+  VoiceOver without replacing the phone battery gauge.
 - Replaces the normal native foreground in SpringBoard and UIKit apps, not a
   floating window. Native status-bar sizing, hiding, rotations and gestures remain.
 - Settings → DroidSB: enable/disable, percentage and 24-hour clock.
@@ -22,8 +26,8 @@ need device validation; the original SE cannot run iOS 16.
 
 Calls, recording/hotspot chips, privacy indicators, dual SIM and other unsupported
 active native entries use the **complete stock bar**. This is intentional in this
-first version. Bluetooth and notification app icons are not
-ported yet. Carrier RAT labels appear only when iOS supplies a recognized string;
+first version. Notification app icons are not ported yet. Carrier RAT labels
+appear only when iOS supplies a recognized string;
 the tweak does not guess private numeric enums. Clock uses the iOS system font,
 not Google Sans/Roboto. No Android services run on iOS.
 
@@ -61,7 +65,7 @@ tweaks before testing. Toggle Enabled off to restore stock visuals; uninstall
 From a device shell with root privileges:
 
 ```sh
-dpkg -i dev.drel.droidsb_0.1.0_iphoneos-arm64.deb
+dpkg -i dev.drel.droidsb_0.1.1_iphoneos-arm64.deb
 killall -9 SpringBoard
 # Removal:
 apt remove dev.drel.droidsb

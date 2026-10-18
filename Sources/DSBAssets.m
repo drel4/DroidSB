@@ -72,10 +72,19 @@ UIImage *DSBIcon(NSString *name, CGFloat height) {
     if (cached) return cached;
     NSDictionary *icon = icons[name];
     CGFloat w = [icon[@"w"] doubleValue], h = [icon[@"h"] doubleValue];
+    CGFloat originX = 0, originY = 0;
+    NSArray *bounds = icon[@"renderBounds"];
+    if (bounds.count == 4) {
+        originX = [bounds[0] doubleValue];
+        originY = [bounds[1] doubleValue];
+        w = [bounds[2] doubleValue];
+        h = [bounds[3] doubleValue];
+    }
     if (w <= 0 || h <= 0 || height <= 0) return nil;
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(height * w / h, height), NO, 0);
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     CGContextScaleCTM(ctx, height / h, height / h);
+    CGContextTranslateCTM(ctx, -originX, -originY);
     DrawNodes(ctx, icon[@"paths"]);
     UIImage *image = [UIGraphicsGetImageFromCurrentImageContext() imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     UIGraphicsEndImageContext();

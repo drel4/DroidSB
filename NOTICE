@@ -7,7 +7,7 @@ and the LineageOS android_frameworks_base tree, licensed under Apache 2.0:
 
 - SystemUI status_bar.xml and status-bar dimensions (design reference).
 - SettingsLib Wi-Fi and mobile signal VectorDrawables (geometry and opacity).
-- SystemUI airplane, alarm, VPN and location, and framework DND
+- SystemUI airplane, alarm, VPN, location, Bluetooth and lock, and framework DND
   VectorDrawables (geometry).
 - SystemUI BatteryFrame.kt, BatteryGlyph.kt, BatteryColors.kt and
   UnifiedBattery.kt (battery geometry, digit/attribution paths, colours and layout).

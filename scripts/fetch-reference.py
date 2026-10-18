@@ -30,6 +30,8 @@ FILES = [
     "packages/SystemUI/res/drawable/ic_statusbar_vpn.xml",
     "packages/SystemUI/res/drawable/ic_location.xml",
     "core/res/res/drawable/ic_qs_dnd.xml",
+    "packages/SystemUI/res/drawable/ic_bluetooth_connected.xml",
+    "packages/SystemUI/res/drawable/ic_device_lock_on.xml",
 ]
 OUT = Path(__file__).resolve().parents[1] / "reference" / "upstream"
 

@@ -117,6 +117,14 @@
     {
       "path": "core/res/res/drawable/ic_qs_dnd.xml",
       "sha256": "3ffa141277b2e9902e40ecb450bb539543baff66db8f905b6912b7ba8342c7c1"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/ic_bluetooth_connected.xml",
+      "sha256": "b6217cb8e8450554701927247917e871aa09eefa338f990e6c68f2848854c312"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/ic_device_lock_on.xml",
+      "sha256": "bd5a75b8864b160231270fb884af5d5e6de14360e81316e1fd0ab5de2a371663"
     }
   ]
 }

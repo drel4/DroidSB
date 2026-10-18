@@ -3,6 +3,11 @@
 Build success is not a device test. No device connection was provided during
 initial implementation. Track actual results here when testing on SE 2016 / 15.8.2.
 
+User feedback: v0.1.0 works on the target SE, but VPN was small, connecting
+AirPods restored stock, and the lock screen remained stock. v0.1.1 handles
+Bluetooth/lock entries and fits the VPN artwork to 12pt; these fixes still need
+on-device confirmation.
+
 ## Required before claiming stable
 
 - Install rootless package; verify SpringBoard and Settings start without crashes.
@@ -15,6 +20,11 @@ initial implementation. Track actual results here when testing on SE 2016 / 15.8
 - Verify black on white / white on dark across SpringBoard and apps; animations.
 - Check clock minute rollover, locale, 12/24h, time-zone/time changes and midnight.
 - Lock/unlock, landscape, app switcher, launch/exit full-screen apps, rotation.
+- Connect/disconnect AirPods with VPN active, both unlocked and on the lock
+  screen. Verify DroidSB stays visible, the VPN key is legible, and phone battery
+  does not change to the AirPods battery. Check VoiceOver accessory percentage.
+- Lock/unlock with and without Touch ID/passcode. Confirm the small clock is
+  not duplicated when iOS hides it; carrier and lock indicator use DroidSB.
 - Verify scroll-to-top, Control Center gestures and VoiceOver clock/battery labels.
 - Confirm call, recording and camera/mic indicators revert to stock; verify
   the Android VPN/location/DND glyphs track native enabled state.

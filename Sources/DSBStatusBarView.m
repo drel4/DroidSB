@@ -41,7 +41,6 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     NSDateFormatter *_formatter;
     __weak UIView *_suppressed;
     CGFloat _savedAlpha;
-    NSString *_dataType;
     UILabel *_network;
 }
 + (void)initialize {
@@ -64,7 +63,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         _network.font = [UIFont systemFontOfSize:9 weight:UIFontWeightBold];
         [self addSubview:_network];
         _icons = [NSMutableArray new];
-        for (NSInteger i = 0; i < 8; i++) {
+        for (NSInteger i = 0; i < 10; i++) {
             UIImageView *icon = [UIImageView new];
             icon.contentMode = UIViewContentModeScaleAspectFit;
             [self addSubview:icon];
@@ -88,7 +87,8 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     // preserves native actionable call/recording/hotspot chips and sensor dots.
     NSSet *supported = [NSSet setWithArray:@[@"timeEntry", @"shortTimeEntry", @"dateEntry", @"mainBatteryEntry",
         @"cellularEntry", @"wifiEntry", @"airplaneModeEntry", @"alarmEntry", @"quietModeEntry",
-        @"deviceNameEntry", @"personNameEntry", @"vpnEntry", @"locationEntry"]];
+        @"deviceNameEntry", @"personNameEntry", @"vpnEntry", @"locationEntry",
+        @"bluetoothEntry", @"lockEntry"]];
     id keys = DSBRead(data, @"existingEntryKeys");
     if (![keys conformsToProtocol:@protocol(NSFastEnumeration)]) return YES;
     for (NSString *key in keys) {
@@ -134,8 +134,18 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     else [_formatter setLocalizedDateFormatFromTemplate:@"j:mm"];
     // Use the native clock when available: same system update cadence, locale,
     // and accessibility. A user-selected 24h override uses the system date.
+    BOOL timeVisible = EnabledEntry(data, @"timeEntry") || EnabledEntry(data, @"shortTimeEntry");
     NSString *nativeTime = DSBRead(DSBRead(data, @"timeEntry"), @"string");
-    _clock.text = !Flag(@"Use24HourClock", NO) && nativeTime.length ? nativeTime : [_formatter stringFromDate:NSDate.date];
+    if (timeVisible) {
+        _clock.text = !Flag(@"Use24HourClock", NO) && nativeTime.length ? nativeTime : [_formatter stringFromDate:NSDate.date];
+    } else {
+        // Cover Sheet suppresses the small native clock because it already has
+        // a large clock. Retain its carrier/device label rather than duplicating
+        // the time or treating the lock entry as an unsupported activity.
+        NSString *carrier = DSBRead(DSBRead(data, @"cellularEntry"), @"string");
+        NSString *device = DSBRead(DSBRead(data, @"deviceNameEntry"), @"string");
+        _clock.text = carrier.length ? carrier : device;
+    }
     _clock.accessibilityLabel = _clock.text;
 
     id battery = DSBRead(data, @"mainBatteryEntry");
@@ -153,10 +163,12 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
 
     NSMutableArray *names = [NSMutableArray new];
     // Android right-side ordering: policy icons, airplane/mobile, Wi-Fi, battery.
+    if (EnabledEntry(data, @"lockEntry")) [names addObject:@"ic_device_lock_on"];
     if (EnabledEntry(data, @"alarmEntry")) [names addObject:@"ic_alarm"];
     if (EnabledEntry(data, @"quietModeEntry")) [names addObject:@"ic_qs_dnd"];
     if (EnabledEntry(data, @"locationEntry")) [names addObject:@"ic_location"];
     if (EnabledEntry(data, @"vpnEntry")) [names addObject:@"ic_statusbar_vpn"];
+    if (EnabledEntry(data, @"bluetoothEntry")) [names addObject:@"ic_bluetooth_connected"];
     BOOL airplane = EnabledEntry(data, @"airplaneModeEntry");
     BOOL wifi = EnabledEntry(data, @"wifiEntry");
     BOOL cellular = !airplane && EnabledEntry(data, @"cellularEntry");
@@ -172,6 +184,20 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     for (NSUInteger i = 0; i < _icons.count; i++) {
         _icons[i].hidden = i >= names.count;
         _icons[i].image = i < names.count ? DSBIcon(names[i], 12) : nil;
+        _icons[i].isAccessibilityElement = NO;
+        _icons[i].accessibilityLabel = nil;
+        if (i < names.count && [names[i] isEqualToString:@"ic_bluetooth_connected"]) {
+            // AirPods accessory capacity is nested in bluetoothEntry, not the
+            // phone battery. Handle it without overwriting the phone gauge or
+            // depending on Apple's private Bluetooth state enum.
+            id accessory = DSBRead(DSBRead(data, @"bluetoothEntry"), @"batteryEntry");
+            NSNumber *level = DSBRead(accessory, @"capacity");
+            BOOL known = [DSBRead(accessory, @"enabled") boolValue] && level && level.integerValue >= 0 && level.integerValue <= 100;
+            _icons[i].isAccessibilityElement = YES;
+            _icons[i].accessibilityLabel = known
+                ? [NSString stringWithFormat:@"Bluetooth, accessory battery %ld percent", (long)level.integerValue]
+                : @"Bluetooth";
+        }
     }
     // Do not guess Apple's numeric RAT enum. Native string/badge may contain
     // actual carrier text; display only explicitly recognizable technology.
