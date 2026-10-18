@@ -6,8 +6,7 @@
 
 NSString *DSBResourceRoot(void) {
     static NSString *root;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
+    if (!root) {
         // Resolve beside our actual loaded dylib; also handles relocated rootless
         // prefixes. Do not assume /var/jb is the jailbreak's physical directory.
         Dl_info info;
@@ -15,22 +14,29 @@ NSString *DSBResourceRoot(void) {
             NSString *lib = [[NSString stringWithUTF8String:info.dli_fname] stringByDeletingLastPathComponent];
             root = [[lib stringByAppendingPathComponent:@"../../Application Support/DroidSB"] stringByStandardizingPath];
         }
-        if (![[NSFileManager defaultManager] fileExistsAtPath:[root stringByAppendingPathComponent:@"icons.json"]])
-            root = @"/var/jb/Library/Application Support/DroidSB";
-    });
+        if (![[NSFileManager defaultManager] fileExistsAtPath:[root stringByAppendingPathComponent:@"icons.json"]]) {
+            NSString *fallback = @"/var/jb/Library/Application Support/DroidSB";
+            root = [[NSFileManager defaultManager] fileExistsAtPath:[fallback stringByAppendingPathComponent:@"icons.json"]] ? fallback : nil;
+        }
+    }
     return root;
 }
 
 static NSDictionary *Load(NSString *name) {
-    NSData *data = [NSData dataWithContentsOfFile:[DSBResourceRoot() stringByAppendingPathComponent:name]];
+    NSString *root = DSBResourceRoot();
+    if (!root) return @{};
+    NSData *data = [NSData dataWithContentsOfFile:[root stringByAppendingPathComponent:name]];
     id result = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
     return [result isKindOfClass:NSDictionary.class] ? result : @{};
 }
 
 NSDictionary *DSBBatteryGlyphs(void) {
     static NSDictionary *glyphs;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{ glyphs = Load(@"battery-glyphs.json"); });
+    static NSTimeInterval retryAfter;
+    if (!glyphs.count && NSProcessInfo.processInfo.systemUptime >= retryAfter) {
+        retryAfter = NSProcessInfo.processInfo.systemUptime + 1;
+        glyphs = Load(@"battery-glyphs.json");
+    }
     return glyphs;
 }
 
@@ -66,7 +72,12 @@ UIImage *DSBIcon(NSString *name, CGFloat height) {
     static NSDictionary *icons;
     static NSCache *cache;
     static dispatch_once_t once;
-    dispatch_once(&once, ^{ icons = Load(@"icons.json"); cache = [NSCache new]; });
+    dispatch_once(&once, ^{ cache = [NSCache new]; });
+    static NSTimeInterval retryAfter;
+    if (!icons.count && NSProcessInfo.processInfo.systemUptime >= retryAfter) {
+        retryAfter = NSProcessInfo.processInfo.systemUptime + 1;
+        icons = Load(@"icons.json");
+    }
     NSString *key = [NSString stringWithFormat:@"%@-%.2f-%.1f", name, height, UIScreen.mainScreen.scale];
     UIImage *cached = [cache objectForKey:key];
     if (cached) return cached;

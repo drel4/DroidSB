@@ -13,5 +13,5 @@
 <key>key</key><string>Use24HourClock</string><key>default</key><false/>
 <key>defaults</key><string>dev.drel.droidsb</string><key>PostNotification</key><string>dev.drel.droidsb/preferences-changed</string></dict>
 <dict><key>cell</key><string>PSGroupCell</string>
-<key>footerText</key><string>Calls, recording, camera/microphone indicators and unsupported status items retain the native iOS bar. Android is a trademark of Google LLC. Not affiliated with Google or LineageOS.</string></dict>
+<key>footerText</key><string>Screen recording uses a red chip when recognized. Calls, camera/microphone indicators and unsupported activity retain the native iOS bar. Android is a trademark of Google LLC. Not affiliated with Google or LineageOS.</string></dict>
 </array><key>title</key><string>DroidSB</string></dict></plist>

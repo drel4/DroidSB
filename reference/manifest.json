@@ -141,6 +141,50 @@
     {
       "path": "core/res/res/values/dimens.xml",
       "sha256": "d19aa609fe63c6e9626c671fb6e92a765327d2e08c377cd2e303cbdad117cd45"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/stat_sys_rotate_portrait.xml",
+      "sha256": "cb5ba3edef95bd751c5ac1c03136c354b5140a4192e35ec5d0389008b79d32eb"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/stat_sys_rotate_landscape.xml",
+      "sha256": "91ea2c3ab2561eca1814a0fac6c8eaa326d5f8f9ce4c33e0adcac0a5320796b6"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/ic_screenrecord.xml",
+      "sha256": "db9ebc94273bcf42bd6bb479b54699aa85057170c20da48c31a962f938f57038"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/ongoing_activity_chip_bg.xml",
+      "sha256": "e0ac21b797be0bc76e9c27204fd332179cf6ba95388be4fd0e13627dde74b546"
+    },
+    {
+      "path": "packages/SystemUI/res/layout/ongoing_activity_chip_content.xml",
+      "sha256": "877d44e82d69ca38ee2bbea1e5c9bf56b6020f1767a0a153299231cdff690f5d"
+    },
+    {
+      "path": "packages/SystemUI/res/values/colors.xml",
+      "sha256": "ddd4f443ba9fd754f5e2b81758c1a36612dfe6a863bec6e253f789f6391da946"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/chips/screenrecord/ui/viewmodel/ScreenRecordChipViewModel.kt",
+      "sha256": "c07aba6a268dc11c6d21507037e2914a5e3aa7201f8f6b5df594d83fa2793d91"
+    },
+    {
+      "path": "packages/SystemUI/pods/statusbar/chips/ui/src/api/model/ColorsModel.kt",
+      "sha256": "1a54a94d9734dbcb55fe4a501ab3ee0d386cfe3c8ab8f9311ca0da6542b2518f"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/compose/OngoingActivityChip.kt",
+      "sha256": "8832eee0f064f60e036c9778ce4264c785b41843c4c9010b625df9855de4e370"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/view/ChipBackgroundContainer.kt",
+      "sha256": "0c7dce815c88b7cc7de0fa2a2f7f3ccbb4aeadae821b5b7d56e30337b36bfc42"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/ScreenRecordDrawable.java",
+      "sha256": "0c30f9fc558f22172b4568cc4a6b785f31825b1302ed89da933c9659fb424be4"
     }
   ]
 }

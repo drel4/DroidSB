@@ -4,6 +4,8 @@
 #import "DSBBatteryView.h"
 #import "DSBAssets.h"
 #import "DSBFont.h"
+#import "DSBRecordingChip.h"
+#import "DSBStatusPolicy.h"
 #import <CoreFoundation/CoreFoundation.h>
 
 static NSString *const Domain = @"dev.drel.droidsb";
@@ -43,6 +45,11 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     __weak UIView *_suppressed;
     CGFloat _savedAlpha;
     UILabel *_network;
+    DSBRecordingChip *_recordingChip;
+    NSTimer *_recordingTimer;
+    NSString *_lastFallback;
+    BOOL _recoveryQueued;
+    NSUInteger _recoveryAttempts;
 }
 + (void)initialize {
     if (self != DSBStatusBarView.class) return;
@@ -54,7 +61,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
 - (instancetype)initWithFrame:(CGRect)frame {
     if ((self = [super initWithFrame:frame])) {
         self.opaque = NO;
-        self.userInteractionEnabled = NO; // native hit testing / scroll-to-top still works
+        self.userInteractionEnabled = YES; // hitTest below passes through outside the chip
         self.clipsToBounds = YES;
         _clock = [UILabel new];
         _clock.font = DSBSansFont(13, 500);
@@ -72,9 +79,15 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         }
         _battery = [DSBBatteryView new];
         [self addSubview:_battery];
+        _recordingChip = [DSBRecordingChip new];
+        _recordingChip.hidden = YES;
+        [_recordingChip addTarget:self action:@selector(recordingTapped:) forControlEvents:UIControlEventTouchUpInside];
+        [self addSubview:_recordingChip];
         _formatter = [NSDateFormatter new];
         UIDevice.currentDevice.batteryMonitoringEnabled = YES;
         [views addObject:self];
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(captureChanged:)
+            name:UIScreenCapturedDidChangeNotification object:nil];
     }
     return self;
 }
@@ -82,23 +95,69 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     if (_suppressed) _suppressed.alpha = _savedAlpha;
     _suppressed = nil;
     self.hidden = YES;
+    _recordingChip.hidden = YES;
+    [_recordingTimer invalidate];
+    _recordingTimer = nil;
 }
-- (BOOL)mustKeepNative:(id)data {
+- (void)captureChanged:(NSNotification *)notification {
+    __weak DSBStatusBarView *weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{ [weakSelf refresh]; });
+}
+- (BOOL)recordingChipContainsPoint:(CGPoint)point {
+    return !self.hidden && !_recordingChip.hidden && self.alpha > .01
+        && CGRectContainsPoint(_recordingChip.frame, point);
+}
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    if (![self recordingChipContainsPoint:point]) return nil;
+    return [_recordingChip hitTest:[self convertPoint:point toView:_recordingChip] withEvent:event];
+}
+- (void)recordingTapped:(id)sender {
+    if (_recordingChip.hidden) return;
+    if (DSBPerformRecordingAction(self.nativeBar)) return;
+    // If this iOS build doesn't expose the recording item's native action,
+    // explain the supported route instead of showing a nonfunctional Stop button.
+    UIViewController *presenter = self.window.rootViewController;
+    if (!presenter) {
+        // A dedicated status-bar window may not have a presenter. Use a visible
+        // window in the SAME scene, not an unrelated app/window on another screen.
+        for (UIWindow *window in self.window.windowScene.windows) {
+            if (window.hidden || window.alpha <= .01 || !window.rootViewController) continue;
+            presenter = window.rootViewController;
+            if (window.isKeyWindow) break;
+        }
+    }
+    while (presenter.presentedViewController) presenter = presenter.presentedViewController;
+    if (!presenter || [presenter isKindOfClass:UIAlertController.class]) return;
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Screen recording"
+        message:@"Stop this recording using the screen recording control in Control Center."
+        preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [presenter presentViewController:alert animated:YES completion:nil];
+}
+- (void)scheduleRecovery {
+    if (_recoveryQueued || _recoveryAttempts >= 8 || !self.window) return;
+    _recoveryQueued = YES;
+    _recoveryAttempts++;
+    __weak DSBStatusBarView *weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        DSBStatusBarView *view = weakSelf;
+        if (!view) return;
+        view->_recoveryQueued = NO;
+        if (view.window) [view refresh];
+    });
+}
+- (BOOL)mustKeepNative:(id)data screenRecording:(BOOL)recording {
     // Unknown active entries are retained as a complete stock bar. This also
     // preserves native actionable call/recording/hotspot chips and sensor dots.
-    NSSet *supported = [NSSet setWithArray:@[@"timeEntry", @"shortTimeEntry", @"dateEntry", @"mainBatteryEntry",
-        @"cellularEntry", @"wifiEntry", @"airplaneModeEntry", @"alarmEntry", @"quietModeEntry",
-        @"deviceNameEntry", @"personNameEntry", @"vpnEntry", @"locationEntry",
-        @"bluetoothEntry", @"lockEntry"]];
     id keys = DSBRead(data, @"existingEntryKeys");
     if (![keys conformsToProtocol:@protocol(NSFastEnumeration)]) return YES;
     for (NSString *key in keys) {
-        // iOS-only cross-app breadcrumbs (e.g. "Back to App Store") are
-        // intentionally omitted from the Android bar. Their presence is not
-        // an unsupported status condition and must not restore stock visuals.
-        // Do not mutate the native entries: disabling DroidSB restores them.
-        if ([key isEqualToString:@"backNavigationEntry"] || [key isEqualToString:@"forwardNavigationEntry"]) continue;
-        if (![supported containsObject:key] && EnabledEntry(data, key)) return YES;
+        if (EnabledEntry(data, key) && DSBEntryRequiresNative(key.UTF8String, recording)) {
+            NSString *reason = [@"entry:" stringByAppendingString:key];
+            if (![_lastFallback isEqual:reason]) NSLog(@"[DroidSB] Native fallback: %@", reason);
+            _lastFallback = reason;
+            return YES;
+        }
     }
     // A second SIM needs separate attribution/VoWiFi handling, not a guessed bar.
     if (EnabledEntry(data, @"secondaryCellularEntry")) return YES;
@@ -108,9 +167,11 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     UIView *bar = self.nativeBar;
     id data = DSBRead(bar, @"currentAggregatedData") ?: DSBRead(bar, @"currentData");
     UIView *foreground = DSBRead(bar, @"foregroundView");
+    BOOL recording = DSBIsScreenRecording(bar, data);
     BOOL assetsReady = DSBIcon(@"ic_wifi_3", 12) && DSBBatteryGlyphs().count;
-    if (!DSBEnabled() || !bar || !data || ![foreground isKindOfClass:UIView.class] || !assetsReady || [self mustKeepNative:data]) {
+    if (!DSBEnabled() || !bar || !data || ![foreground isKindOfClass:UIView.class] || !assetsReady || [self mustKeepNative:data screenRecording:recording]) {
         [self restoreNative];
+        if (DSBEnabled() && bar && (!data || ![foreground isKindOfClass:UIView.class] || !assetsReady)) [self scheduleRecovery];
         return NO;
     }
     if (_suppressed != foreground) {
@@ -120,6 +181,10 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     }
     foreground.alpha = 0; // leave native layout/data and status-bar gestures intact
     self.hidden = NO;
+    _lastFallback = nil;
+    _recoveryAttempts = 0;
+    _clock.font = DSBSansFont(13, 500);
+    _network.font = DSBSansFont(9, 700);
     self.frame = bar.bounds;
     if (bar.subviews.lastObject != self) [bar bringSubviewToFront:self];
 
@@ -153,6 +218,20 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         _clock.text = carrier.length ? carrier : device;
     }
     _clock.accessibilityLabel = _clock.text;
+    _recordingChip.hidden = !recording;
+    if (recording) {
+        [_recordingChip updateFromEntry:DSBRead(data, @"backgroundActivityEntry")];
+        if (!_recordingTimer && self.window) {
+            __weak DSBStatusBarView *weakSelf = self;
+            _recordingTimer = [NSTimer timerWithTimeInterval:1 repeats:YES block:^(__unused NSTimer *timer) {
+                [weakSelf refresh];
+            }];
+            [NSRunLoop.mainRunLoop addTimer:_recordingTimer forMode:NSRunLoopCommonModes];
+        }
+    } else {
+        [_recordingTimer invalidate];
+        _recordingTimer = nil;
+    }
 
     id battery = DSBRead(data, @"mainBatteryEntry");
     NSNumber *capacity = DSBRead(battery, @"capacity");
@@ -170,6 +249,10 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     NSMutableArray *names = [NSMutableArray new];
     // Android right-side ordering: policy icons, airplane/mobile, Wi-Fi, battery.
     if (EnabledEntry(data, @"lockEntry")) [names addObject:@"ic_device_lock_on"];
+    if (EnabledEntry(data, @"rotationLockEntry")) {
+        BOOL landscape = UIInterfaceOrientationIsLandscape(bar.window.windowScene.interfaceOrientation);
+        [names addObject:landscape ? @"stat_sys_rotate_landscape" : @"stat_sys_rotate_portrait"];
+    }
     if (EnabledEntry(data, @"alarmEntry")) [names addObject:@"ic_alarm"];
     if (EnabledEntry(data, @"quietModeEntry")) [names addObject:@"ic_qs_dnd"];
     if (EnabledEntry(data, @"locationEntry")) [names addObject:@"ic_location"];
@@ -243,9 +326,23 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     if (_network.text.length) right -= ns.width + 3;
     CGFloat maxClock = width > 350 && height > 24 ? width * .35 - left : right - left - 12;
     _clock.frame = CGRectMake(left, center - 8, MAX(0, MIN(100, maxClock)), 16);
+    if (!_recordingChip.hidden) {
+        CGFloat h = MIN(24, MAX(0, height - 2));
+        CGSize desired = [_recordingChip sizeThatFits:CGSizeMake(100, h)];
+        CGFloat room = MAX(0, right - left - 5);
+        CGFloat chipWidth = MIN(desired.width, room);
+        CGFloat clockWidth = MIN([_clock sizeThatFits:CGSizeMake(100, 16)].width, MAX(0, room - chipWidth - 5));
+        _clock.frame = CGRectMake(left, center - 8, clockWidth, 16);
+        CGFloat chipX = left + clockWidth + (clockWidth > 0 ? 5 : 0);
+        _recordingChip.frame = CGRectMake(chipX, center - h/2, chipWidth, h);
+    }
 }
 - (void)didMoveToWindow {
     [super didMoveToWindow];
     if (!self.window) [self restoreNative];
+}
+- (void)dealloc {
+    [_recordingTimer invalidate];
+    [NSNotificationCenter.defaultCenter removeObserver:self];
 }
 @end

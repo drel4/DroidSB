@@ -36,6 +36,17 @@ FILES = [
     "packages/SystemUI/src/com/android/systemui/statusbar/phone/StatusBarSignalPolicy.java",
     "packages/SystemUI/src/com/android/systemui/statusbar/StatusBarIconView.java",
     "core/res/res/values/dimens.xml",
+    "packages/SystemUI/res/drawable/stat_sys_rotate_portrait.xml",
+    "packages/SystemUI/res/drawable/stat_sys_rotate_landscape.xml",
+    "packages/SystemUI/res/drawable/ic_screenrecord.xml",
+    "packages/SystemUI/res/drawable/ongoing_activity_chip_bg.xml",
+    "packages/SystemUI/res/layout/ongoing_activity_chip_content.xml",
+    "packages/SystemUI/res/values/colors.xml",
+    "packages/SystemUI/src/com/android/systemui/statusbar/chips/screenrecord/ui/viewmodel/ScreenRecordChipViewModel.kt",
+    "packages/SystemUI/pods/statusbar/chips/ui/src/api/model/ColorsModel.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/compose/OngoingActivityChip.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/chips/ui/view/ChipBackgroundContainer.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/ScreenRecordDrawable.java",
 ]
 OUT = Path(__file__).resolve().parents[1] / "reference" / "upstream"
 

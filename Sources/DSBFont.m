@@ -11,18 +11,25 @@ UIFont *DSBSansFont(CGFloat size, CGFloat weight) {
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         cache = [NSMutableDictionary new];
-        NSURL *url = [NSURL fileURLWithPath:[DSBResourceRoot() stringByAppendingPathComponent:@"fonts/GoogleSansFlex.ttf"]];
-        NSArray *descriptors = CFBridgingRelease(CTFontManagerCreateFontDescriptorsFromURL((__bridge CFURLRef)url));
-        if (descriptors.count) {
-            postScriptName = CFBridgingRelease(CTFontDescriptorCopyAttribute((__bridge CTFontDescriptorRef)descriptors.firstObject, kCTFontNameAttribute));
-            CFErrorRef error = NULL;
-            // LineageQS may have registered this same font already. In that
-            // case registration can return AlreadyRegistered; the name remains
-            // usable. Never unregister a font shared by another tweak.
-            CTFontManagerRegisterFontsForURL((__bridge CFURLRef)url, kCTFontManagerScopeProcess, &error);
-            if (error) CFRelease(error);
-        }
     });
+    static NSTimeInterval retryAfter;
+    if (!postScriptName && NSProcessInfo.processInfo.systemUptime >= retryAfter) {
+        retryAfter = NSProcessInfo.processInfo.systemUptime + 1;
+        NSString *root = DSBResourceRoot();
+        NSURL *url = root ? [NSURL fileURLWithPath:[root stringByAppendingPathComponent:@"fonts/GoogleSansFlex.ttf"]] : nil;
+        if (url) {
+            NSArray *descriptors = CFBridgingRelease(CTFontManagerCreateFontDescriptorsFromURL((__bridge CFURLRef)url));
+            if (descriptors.count) {
+                postScriptName = CFBridgingRelease(CTFontDescriptorCopyAttribute((__bridge CTFontDescriptorRef)descriptors.firstObject, kCTFontNameAttribute));
+                CFErrorRef error = NULL;
+                // LineageQS may have registered this same font already. In that
+                // case registration can return AlreadyRegistered; the name remains
+                // usable. Never unregister a font shared by another tweak.
+                CTFontManagerRegisterFontsForURL((__bridge CFURLRef)url, kCTFontManagerScopeProcess, &error);
+                if (error) CFRelease(error);
+            }
+        }
+    }
     NSString *key = [NSString stringWithFormat:@"%.2f/%.0f", size, weight];
     @synchronized (cache) {
         UIFont *font = cache[key];
@@ -39,7 +46,7 @@ UIFont *DSBSansFont(CGFloat size, CGFloat weight) {
             CFRelease(descriptor);
         }
         if (!font) font = [UIFont systemFontOfSize:size weight:weight >= 700 ? UIFontWeightBold : weight >= 500 ? UIFontWeightMedium : UIFontWeightRegular];
-        cache[key] = font;
+        if (postScriptName.length) cache[key] = font;
         return font;
     }
 }

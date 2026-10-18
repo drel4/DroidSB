@@ -14,6 +14,10 @@ drawable and 15dp system-icon viewport sizing. See [VPN-SIZING.md](VPN-SIZING.md
 v0.1.3 intentionally ignores iOS back/forward navigation entries. Opening an app
 from App Store or a deep link should retain DroidSB without a breadcrumb button.
 
+User confirmed that rotation lock caused the persistent stock bar, and reported
+the same during recording. v0.1.4 handles rotation lock and identified screen
+recording, and repairs attachment/early-resource recovery. Needs device testing.
+
 ## Required before claiming stable
 
 - Install rootless package; verify SpringBoard and Settings start without crashes.
@@ -29,6 +33,17 @@ from App Store or a deep link should retain DroidSB without a breadcrumb button.
   13pt optical size. Test both with and without LineageQS installed; verify shared
   font registration does not affect either tweak. Battery digits remain vectors.
 - Lock/unlock, landscape, app switcher, launch/exit full-screen apps, rotation.
+- Toggle rotation lock in Control Center/LineageQS, leave it enabled, and respring
+  repeatedly. DroidSB should stay visible on the Home Screen and inside apps.
+- Start screen recording, switch apps, stop it, and record again. Check the red
+  chip/timer, clock and system icons fit the 20pt SE bar without overlapping.
+- Tap the red chip: native recording confirmation/control should open when its
+  action is exposed; otherwise show the Control Center instruction. Confirm Stop
+  saves the video, Cancel continues recording, and there is no duplicate action.
+- Check recording after lock/unlock/rotation; elapsed time must not reset due to
+  view recreation. With an invalid/missing timestamp, show REC rather than zero.
+- Check calls, mirroring and camera/mic access while recording. Keep stock where
+  the activity cannot be identified or native privacy indicators are needed.
 - Open an installed app using App Store's Open button; follow an app link from
   Safari/Mail. Verify DroidSB remains visible, with no "Back to" or forward
   breadcrumb. Check that real call/privacy activity still falls back to stock.
@@ -40,7 +55,7 @@ from App Store or a deep link should retain DroidSB without a breadcrumb button.
 - Lock/unlock with and without Touch ID/passcode. Confirm the small clock is
   not duplicated when iOS hides it; carrier and lock indicator use DroidSB.
 - Verify scroll-to-top, Control Center gestures and VoiceOver clock/battery labels.
-- Confirm call, recording and camera/mic indicators revert to stock; verify
+- Confirm calls and camera/mic indicators revert to stock; verify
   the Android VPN/location/DND glyphs track native enabled state.
 - Enable/disable repeatedly in Settings; confirm no invisible or double foreground.
 - Install alongside LineageQS; confirm its shade and header are unchanged.

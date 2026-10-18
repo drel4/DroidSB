@@ -41,7 +41,9 @@ with tempfile.TemporaryDirectory(prefix="droidsb-verify-") as temp:
         assert subtypes == {0, 2}, subtypes
         print(f"PASS: {path.relative_to(root)} arm64 + arm64e; conversion provenance verified")
     catalog = lib / "Application Support/DroidSB"
-    assert len(json.loads((catalog / "icons.json").read_text())) >= 14
+    icons = json.loads((catalog / "icons.json").read_text())
+    for name in ("stat_sys_rotate_portrait", "stat_sys_rotate_landscape", "ic_screenrecord"):
+        assert name in icons and icons[name]["paths"], f"Missing new status glyph: {name}"
     for name in ("LICENSE", "NOTICE", "battery-glyphs.json"):
         assert (catalog / name).stat().st_size > 0
     font_manifest = json.loads((Path(__file__).resolve().parents[1] / "reference/fonts.json").read_text())

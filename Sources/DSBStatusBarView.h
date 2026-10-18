@@ -4,6 +4,7 @@
 @property(nonatomic, weak) UIView *nativeBar;
 - (BOOL)refresh;
 - (void)restoreNative;
+- (BOOL)recordingChipContainsPoint:(CGPoint)point;
 @end
-id DSBRead(id object, NSString *key);
-BOOL DSBEnabled(void);
+FOUNDATION_EXPORT id DSBRead(id object, NSString *key);
+FOUNDATION_EXPORT BOOL DSBEnabled(void);
