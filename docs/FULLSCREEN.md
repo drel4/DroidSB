@@ -30,35 +30,26 @@ grabber is not replaced; disabling DroidSB restores the native region test.
 This is an Android-looking presentation on iOS gesture policy, not a port of
 Android's entire immersive-mode window manager.
 
-## Dismissal (0.1.9)
+## Dismissal / recovery
 
-The pinned Android [`AutoHideControllerImpl`](../reference/upstream/packages/SystemUI/src/com/android/systemui/statusbar/phone/AutoHideControllerImpl.java)
-uses a 2250 ms ordinary auto-hide timeout and a 350 ms outside-touch timeout.
-DroidSB now owns those deadlines while its row is presented, canceling/suppressing
-the old native grabber timer. Timers pause during a bar touch or native pull;
-release/cancellation restarts the ordinary timeout, or the pending outside-touch
-timeout. Repeated outside touches do not postpone the pending dismissal.
+**0.1.9 is withdrawn after a reported SpringBoard startup freeze (black screen
+or spinning wheel, Safe Mode after force reboot).** The exact on-device failure
+is not confirmed without device logs.
 
-Android's accessibility service adjusts both delays. iOS exposes no equivalent
-recommended-timeout API: DroidSB extends both to 10 seconds when VoiceOver or
-Switch Control is running. This is an explicit iOS adaptation, not a recreation
-of Android's per-user accessibility timeout preference.
+0.1.10 restores the runtime sources from 0.1.8. The global UIApplication event
+hook, notification IPC, constructor initialization, custom auto-hide timer and
+native timer/tap suppression introduced in 0.1.9 are removed entirely. Native
+iOS grabber dismissal is restored. Android-specific dismissal is NOT enabled.
 
-The UIKit `sendEvent:` hook observes touch starts; it does not consume, cancel
-or change delivery to fullscreen apps. SpringBoard publishes the row's normalized
-fixed-screen bounds and a reveal generation using Darwin notify state. App
-processes report only an outside-start generation, not coordinates or app data.
-Late reports from older reveals are ignored. The IPC is active only while a row
-is published and is scoped to the main screen. A touch starting inside the row
-does not count as outside; recording actions and top pulls retain their behavior.
-An upward swipe starting outside qualifies on its initial touch; no global
-swipe-up recognizer is added.
+The retained Android [`AutoHideControllerImpl`](../reference/upstream/packages/SystemUI/src/com/android/systemui/statusbar/phone/AutoHideControllerImpl.java)
+reference specifies 2250 ms auto-hide and 350 ms outside-touch dismissal, with
+accessibility adjustments. These remain reference material, not active features
+of the recovery build. They need a separately validated redesign before returning.
 
-Expiry invokes SpringBoard's own timer-dismiss entry point to clear native
-visibility/second-swipe state, not just remove the custom view. Forced native
-teardown and accepted shade pulls still dismiss normally. Missing IPC support
-would leave timer auto-hide working but outside app touches require device
-verification. Relaunch already-running apps after installing the update.
+If affected, remain in Safe Mode and uninstall 0.1.9 or replace it with the
+recovery package before attempting another respring. The recovery build still
+requires confirmation on the physical device; successful Linux tests do not
+prove SpringBoard startup or gesture correctness.
 
 Data comes from SpringBoard's existing `_UIStatusBar` updates in the same process;
 the row also refreshes its clock each second while presented. Recording actions

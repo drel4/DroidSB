@@ -3,12 +3,9 @@
 #import "DSBTransientBar.h"
 #import "DSBStatusBarView.h"
 #import "DSBTransientGeometry.h"
-#import "DSBTransientPolicy.h"
 #import <objc/runtime.h>
-#import <objc/message.h>
-#import <notify.h>
 
-// The native grabber retains recognition and second-swipe routing.
+// The native grabber retains recognition, second-swipe routing and auto-dismiss.
 // Presentation and the top grabber region are replaced; no global gesture
 // recognizer/window is added.
 static char TransientKey;
@@ -16,18 +13,6 @@ static char TouchKey;
 static id latestData;
 static __weak UIView *latestBar;
 static NSHashTable *presentations;
-static const char *FrameNotification = "dev.drel.droidsb/transient-frame";
-static const char *OutsideNotification = "dev.drel.droidsb/transient-outside";
-static int frameToken = -1, outsideToken = -1;
-static uint64_t publishedFrame;
-static uint16_t nextGeneration;
-@class DSBTransientPresentation;
-static __weak DSBTransientPresentation *activePresentation;
-static void PublishTransientFrame(void);
-static void CancelNativeAutoHide(id tongue) {
-    SEL selector = NSSelectorFromString(@"_cancelPendingTongueDismissRequests");
-    if ([tongue respondsToSelector:selector]) ((void (*)(id, SEL))objc_msgSend)(tongue, selector);
-}
 
 static BOOL DSBIsTopTongue(id tongue) {
     id delegate = DSBRead(tongue, @"delegate");
@@ -135,71 +120,20 @@ static void DSBLayoutTransientHost(DSBTransientHost *host, UIView *container, DS
 @property(nonatomic, strong) DSBTransientHost *host;
 @property(nonatomic, strong) UIViewPropertyAnimator *animator;
 @property(nonatomic, strong) NSTimer *timer;
-@property(nonatomic, strong) NSTimer *autoHideTimer;
-@property(nonatomic, weak) id tongue;
-@property(nonatomic, weak) UIPanGestureRecognizer *nativeGesture;
-@property(nonatomic, strong) NSHashTable<UITouch *> *barTouches;
-@property(nonatomic) uint16_t generation;
-@property(nonatomic) BOOL outsideRequested;
-@property(nonatomic) BOOL policyDismissing;
 - (void)refresh;
 - (void)dismiss:(BOOL)animated;
-- (void)scheduleAutoHide;
-- (void)requestOutsideHide;
-- (void)expireAutoHide;
 @end
 
 @implementation DSBTransientPresentation
 - (void)refresh {
-    if (!DSBEnabled()) { [self expireAutoHide]; return; }
+    if (!DSBEnabled()) { [self dismiss:NO]; return; }
     self.host.currentAggregatedData = latestData;
     self.host.sourceBar = latestBar;
     self.host.renderer.actionBar = latestBar;
     [self.host.renderer refresh];
     [self.host.renderer layoutIfNeeded];
-    // Also recover from a canceled/deallocated touch without an end callback.
-    if (self.host && !self.autoHideTimer) [self scheduleAutoHide];
-    if (activePresentation == self) PublishTransientFrame();
-}
-- (BOOL)isInteracting {
-    UIGestureRecognizerState state = self.nativeGesture.state;
-    return self.barTouches.allObjects.count > 0 || (self.nativeGesture
-        && (state == UIGestureRecognizerStateBegan || state == UIGestureRecognizerStateChanged));
-}
-- (void)scheduleAutoHide {
-    [self.autoHideTimer invalidate]; self.autoHideTimer = nil;
-    if (!self.host || [self isInteracting]) return;
-    BOOL assistive = UIAccessibilityIsVoiceOverRunning() || UIAccessibilityIsSwitchControlRunning();
-    __weak DSBTransientPresentation *weakSelf = self;
-    self.autoHideTimer = [NSTimer timerWithTimeInterval:DSBTransientTimeout(self.outsideRequested, assistive)
-        repeats:NO block:^(__unused NSTimer *timer) {
-        DSBTransientPresentation *view = weakSelf;
-        if (!view.host) return;
-        if ([view isInteracting]) { [view scheduleAutoHide]; return; }
-        // Use the native timer-dismiss entry point rather than guessing a style
-        // enum or leaving SpringBoard's tongueVisible/second-swipe state behind.
-        [view expireAutoHide];
-    }];
-    [NSRunLoop.mainRunLoop addTimer:self.autoHideTimer forMode:NSRunLoopCommonModes];
-}
-- (void)expireAutoHide {
-    if (!self.host) return;
-    self.policyDismissing = YES;
-    @try {
-        SEL selector = NSSelectorFromString(@"_dismissTongue:");
-        id tongue = self.tongue;
-        if ([tongue respondsToSelector:selector]) ((void (*)(id, SEL, id))objc_msgSend)(tongue, selector, nil);
-        if (self.host) [self dismiss:YES];
-    } @finally { self.policyDismissing = NO; }
-}
-- (void)requestOutsideHide {
-    if (!self.host || self.outsideRequested) return; // repeated touches don't postpone it
-    self.outsideRequested = YES;
-    [self scheduleAutoHide];
 }
 - (void)dismiss:(BOOL)animated {
-    [self.autoHideTimer invalidate]; self.autoHideTimer = nil;
-    [self.barTouches removeAllObjects];
     [self.timer invalidate]; self.timer = nil;
     if (!self.host) {
         if (!animated && self.animator.state == UIViewAnimatingStateActive) {
@@ -213,7 +147,6 @@ static void DSBLayoutTransientHost(DSBTransientHost *host, UIView *container, DS
     UIView *arrow = self.arrow;
     BOOL hidden = self.arrowWasHidden;
     self.host = nil;
-    if (activePresentation == self) { activePresentation = nil; PublishTransientFrame(); }
     // InsetsController's transient MOVE_OUT duration and material easing.
     UICubicTimingParameters *timing = [[UICubicTimingParameters alloc]
         initWithControlPoint1:CGPointMake(.4, 0) controlPoint2:CGPointMake(.2, 1)];
@@ -226,107 +159,12 @@ static void DSBLayoutTransientHost(DSBTransientHost *host, UIView *container, DS
     }];
     [self.animator startAnimation];
 }
-- (void)dealloc { [self.timer invalidate]; [self.autoHideTimer invalidate]; }
+- (void)dealloc { [self.timer invalidate]; }
 @end
-
-static void PublishTransientFrame(void) {
-    DSBTransientPresentation *presentation = activePresentation;
-    DSBTransientHost *host = presentation.host;
-    publishedFrame = 0;
-    if (host.window.screen == UIScreen.mainScreen) {
-        UIWindow *window = host.window;
-        id<UICoordinateSpace> space = window.screen.fixedCoordinateSpace;
-        CGRect rect = [window convertRect:[host convertRect:host.bounds toView:window] toCoordinateSpace:space];
-        CGRect bounds = space.bounds;
-        if (bounds.size.width > 0 && bounds.size.height > 0) {
-            publishedFrame = DSBTransientFrame(presentation.generation,
-                (CGRectGetMinX(rect)-bounds.origin.x)/bounds.size.width,
-                (CGRectGetMinY(rect)-bounds.origin.y)/bounds.size.height,
-                (CGRectGetMaxX(rect)-bounds.origin.x)/bounds.size.width,
-                (CGRectGetMaxY(rect)-bounds.origin.y)/bounds.size.height);
-        }
-    }
-    if (frameToken >= 0) { notify_set_state(frameToken, publishedFrame); notify_post(FrameNotification); }
-}
-
-void DSBInitializeTransientAutoHide(void) {
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        if (notify_register_check(FrameNotification, &frameToken) != NOTIFY_STATUS_OK) frameToken = -1;
-        if ([NSProcessInfo.processInfo.processName isEqualToString:@"SpringBoard"]) {
-            nextGeneration = (uint16_t)arc4random_uniform(UINT16_MAX);
-            PublishTransientFrame(); // clear stale state after a respring
-            if (notify_register_dispatch(OutsideNotification, &outsideToken, dispatch_get_main_queue(), ^(int token) {
-                uint64_t generation = 0;
-                if (notify_get_state(token, &generation) == NOTIFY_STATUS_OK
-                    && DSBTransientGenerationMatches(publishedFrame, generation)) [activePresentation requestOutsideHide];
-            }) != NOTIFY_STATUS_OK) outsideToken = -1;
-            for (NSString *name in @[UIAccessibilityVoiceOverStatusDidChangeNotification, UIAccessibilitySwitchControlStatusDidChangeNotification]) {
-                [NSNotificationCenter.defaultCenter addObserverForName:name object:nil queue:NSOperationQueue.mainQueue
-                    usingBlock:^(__unused NSNotification *note) { [activePresentation scheduleAutoHide]; }];
-            }
-        } else if (notify_register_check(OutsideNotification, &outsideToken) != NOTIFY_STATUS_OK) outsideToken = -1;
-    });
-}
-
-void DSBObserveTransientEvent(UIEvent *event) {
-    if (event.type != UIEventTypeTouches || frameToken < 0) return;
-    // register_check uses shared memory. Hidden bars must not cause a notifyd
-    // round trip on every app touch/move; read state only after publication.
-    static uint64_t observedFrame;
-    int changed = 0;
-    if (notify_check(frameToken, &changed) != NOTIFY_STATUS_OK) return;
-    if (changed && notify_get_state(frameToken, &observedFrame) != NOTIFY_STATUS_OK) observedFrame = 0;
-    uint64_t frame = observedFrame;
-    if (!(frame >> 48)) return;
-    DSBTransientPresentation *presentation = activePresentation;
-    BOOL changedBarTouch = NO;
-    for (UITouch *touch in event.allTouches) {
-        if (touch.window.screen != UIScreen.mainScreen) continue;
-        if (touch.phase == UITouchPhaseBegan) {
-            UIWindow *window = touch.window;
-            id<UICoordinateSpace> space = window.screen.fixedCoordinateSpace;
-            CGPoint point = [window convertPoint:[touch locationInView:window] toCoordinateSpace:space];
-            CGRect bounds = space.bounds;
-            if (bounds.size.width <= 0 || bounds.size.height <= 0) continue;
-            BOOL inside = DSBTransientContains(frame, (point.x-bounds.origin.x)/bounds.size.width,
-                (point.y-bounds.origin.y)/bounds.size.height);
-            if (inside && presentation.host) {
-                [presentation.barTouches addObject:touch];
-                presentation.outsideRequested = NO;
-                changedBarTouch = YES;
-            } else if (!inside) {
-                if (presentation.host) [presentation requestOutsideHide];
-                else if (outsideToken >= 0) {
-                    notify_set_state(outsideToken, frame >> 48);
-                    notify_post(OutsideNotification);
-                }
-            }
-        } else if (touch.phase == UITouchPhaseEnded || touch.phase == UITouchPhaseCancelled) {
-            if ([presentation.barTouches containsObject:touch]) {
-                [presentation.barTouches removeObject:touch]; changedBarTouch = YES;
-            }
-        }
-    }
-    if (changedBarTouch) [presentation scheduleAutoHide];
-}
-
-BOOL DSBReplacesNativeTransientDismiss(id tongue) {
-    DSBTransientPresentation *view = objc_getAssociatedObject(tongue, &TransientKey);
-    return view.host && !view.policyDismissing;
-}
-
-void DSBUpdateTransientGesture(id tongue, UIPanGestureRecognizer *gesture) {
-    DSBTransientPresentation *view = objc_getAssociatedObject(tongue, &TransientKey);
-    if (!view.host || ![gesture isKindOfClass:UIPanGestureRecognizer.class]) return;
-    view.nativeGesture = gesture;
-    CancelNativeAutoHide(tongue);
-    [view scheduleAutoHide];
-}
 
 void DSBObserveNativeBar(UIView *bar) {
     // This runs in the owning process. SpringBoard supplies the fullscreen row;
-    // app-process bar data stays local. Only outside-touch dismissal uses IPC.
+    // app-process bars stay local and do not require cross-process messaging.
     id data = DSBRead(bar, @"currentAggregatedData") ?: DSBRead(bar, @"currentData");
     if (!data) return;
     latestBar = bar;
@@ -354,11 +192,6 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
     DSBTransientPresentation *old = objc_getAssociatedObject(tongue, &TransientKey);
     if (old.host) {
         if (touch) DSBLayoutTransientHost(old.host, container, touch);
-        old.outsideRequested = NO;
-        old.nativeGesture = touch.gesture;
-        CancelNativeAutoHide(tongue);
-        PublishTransientFrame();
-        [old scheduleAutoHide];
         [old refresh];
         return;
     }
@@ -367,11 +200,6 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
     if (old.animator.state == UIViewAnimatingStateStopped) [old.animator finishAnimationAtPosition:UIViewAnimatingPositionEnd];
 
     DSBTransientPresentation *presentation = [DSBTransientPresentation new];
-    presentation.tongue = tongue;
-    presentation.nativeGesture = touch.gesture;
-    presentation.barTouches = [NSHashTable weakObjectsHashTable];
-    if (++nextGeneration == 0) ++nextGeneration;
-    presentation.generation = nextGeneration;
     presentation.arrow = arrow;
     presentation.arrowWasHidden = arrow.hidden;
     DSBTransientHost *host = [DSBTransientHost new];
@@ -389,9 +217,6 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
     if (host.renderer.hidden) { [host removeFromSuperview]; return; }
     arrow.hidden = YES;
     objc_setAssociatedObject(tongue, &TransientKey, presentation, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    activePresentation = presentation;
-    CancelNativeAutoHide(tongue);
-    PublishTransientFrame();
     if (!presentations) presentations = [NSHashTable weakObjectsHashTable];
     [presentations addObject:presentation];
     __weak DSBTransientPresentation *weakPresentation = presentation;
@@ -406,7 +231,6 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
         UIView *parent = weakContainer;
         if (current.host != host || host.superview != parent) return;
         DSBLayoutTransientHost(host, parent, touch);
-        PublishTransientFrame();
         [current refresh];
     });
     host.renderer.transform = CGAffineTransformMakeTranslation(0, -host.bounds.size.height);

@@ -24,18 +24,12 @@ It also removes status-entry-triggered stock fallback, including network activit
 
 ## Required before claiming stable
 
-- v0.1.9: reveal in a fullscreen app, release the initiating pull, then leave
-  untouched: hide should begin after roughly 2.25 seconds. Reveal again and touch
-  outside: hide should begin about 350 ms later without swallowing the app touch.
-- Repeat outside taps and upward app swipes, portrait and both landscapes;
-  test rapid dismiss/reveal to reject late touches from the previous reveal.
-  Near-edge/recording-chip touches must not count as outside touches.
-- Hold a native top pull or recording-chip touch past the ordinary deadline:
-  keep visible during the interaction, then restart on release/cancel. Verify
-  second-swipe LineageQS/NC routing, normal app gestures and recording controls.
-- Enable VoiceOver or Switch Control: both delays should extend to 10 seconds.
-  Disable the feature while visible and verify the deadline updates. Toggle
-  DroidSB off while visible and confirm no orphaned arrow or hidden native state.
+- Recovery 0.1.10: install from Safe Mode over 0.1.9, then verify a normal
+  respring/unlock reaches the Home Screen without a black screen/spinning wheel.
+  Repeat respring, app launches and fullscreen reveal/normal native dismissal.
+- Confirm 0.1.9 event/IPC/custom-timer hooks are absent from the recovery payload;
+  Android-specific dismissal timing is intentionally disabled. Test alongside
+  LineageQS and confirm the pre-0.1.9 full-width/orientation behavior remains.
 - v0.1.8: after respring, make the FIRST fullscreen pull near the left end,
   center, then right end of the top edge. Repeat after a fresh respring in
   each landscape direction. Check the row appears on the actual top edge
