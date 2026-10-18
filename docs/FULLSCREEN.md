@@ -13,14 +13,20 @@ translucent backing for legibility, and white foreground. Reduce Motion skips
 the slide. It does not reveal a permanent status bar or resize the fullscreen app.
 
 The row lives in the existing SpringBoard grabber host, not a new overlay window.
-As of 0.1.7, landscape uses LineageQS's gesture touch-orientation and physical
-starting-edge approach: SpringBoard's scene may remain portrait-aligned over
-a landscape app. The row rotates onto the touched edge, and slides outward
-through that same edge on dismissal. Already-oriented hosts are not rotated
-twice. Scene conversion remains the fallback for presentations without a touch.
+The physical starting-edge approach was adapted from LineageQS: SpringBoard's
+scene may remain portrait-aligned over a landscape app. As of 0.1.8, the actual
+initial touch is captured before recognition in fixed screen coordinates and
+converted into the host AFTER its presentation layout, with one deferred layout
+check for first-use setup. This avoids retaining an edge calculated in the old
+host coordinates. Near corners, the inward pan direction breaks distance ties.
+The row rotates onto the touched edge and slides outward through that edge.
+Scene conversion remains the fallback for presentations without a touch.
 SpringBoard's existing
 gesture recognizers, native auto-dismiss lifetime, first/second-swipe decisions,
-and LineageQS routing remain intact. The bottom/home grabber is not replaced.
+and LineageQS routing remain intact. The top grabber's center-only region test
+is widened while DroidSB is enabled: pulls can start along the full top edge,
+but native edge recognition and eligibility still apply. The bottom/home
+grabber is not replaced; disabling DroidSB restores the native region test.
 This is an Android-looking presentation on iOS gesture policy, not a port of
 Android's entire immersive-mode window manager or its timeout policy.
 

@@ -24,6 +24,13 @@ It also removes status-entry-triggered stock fallback, including network activit
 
 ## Required before claiming stable
 
+- v0.1.8: after respring, make the FIRST fullscreen pull near the left end,
+  center, then right end of the top edge. Repeat after a fresh respring in
+  each landscape direction. Check the row appears on the actual top edge
+  on the first attempt, without a one-frame wrong-side presentation.
+- Repeat a second swipe from different positions along the top edge. The shade
+  should open normally, with/without LineageQS. Interior drags and bottom/home
+  gestures must not reveal the row. Disabled must restore native activation.
 - In a fullscreen video/game with deferred top gestures, swipe once: DroidSB
   should slide in instead of the iOS arrow, without resizing the app. Wait for
   native auto-dismiss, then repeat. Swipe a second time to open the shade.

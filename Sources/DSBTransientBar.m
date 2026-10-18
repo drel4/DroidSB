@@ -4,12 +4,12 @@
 #import "DSBStatusBarView.h"
 #import "DSBTransientGeometry.h"
 #import <objc/runtime.h>
-#import <objc/message.h>
 
 // The native grabber retains recognition, second-swipe routing and auto-dismiss.
-// Only its presentation is replaced; no global gesture recognizer/window is added.
+// Presentation and the top grabber region are replaced; no global gesture
+// recognizer/window is added.
 static char TransientKey;
-static char VisualEdgeKey;
+static char TouchKey;
 static id latestData;
 static __weak UIView *latestBar;
 static NSHashTable *presentations;
@@ -22,28 +22,49 @@ static BOOL DSBIsTopTongue(id tongue) {
         || (edge && edge.unsignedIntegerValue == UIRectEdgeTop);
 }
 
-// Adapted from LineageQS's CaptureTopGrabberVisualEdge (Apache-2.0,
-// Copyright 2026 makr). A grabber's scene can still report portrait while
-// the initiating touch belongs to a landscape app. Cache its physical edge,
-// not just the scene orientation, for both presentation and dismissal.
+BOOL DSBUsesWideTransientGrabber(id tongue) {
+    return DSBEnabled() && DSBIsTopTongue(tongue);
+}
+
+@interface DSBTransientTouch : NSObject
+@property(nonatomic, strong) UIScreen *screen;
+@property(nonatomic) CGPoint fixedStart;
+@property(nonatomic, weak) UIPanGestureRecognizer *gesture;
+@end
+@implementation DSBTransientTouch
+@end
+
+// Extends LineageQS's original-start-edge approach (Apache-2.0,
+// Copyright 2026 makr). Keep the actual touch in rotation-independent screen
+// space: the first presentation may orient/create its host AFTER recognition.
+void DSBCaptureTransientTouch(id tongue, UIGestureRecognizer *gesture, UITouch *touch) {
+    if (![gesture isKindOfClass:UIPanGestureRecognizer.class] || !DSBUsesWideTransientGrabber(tongue)) return;
+    objc_setAssociatedObject(tongue, &TouchKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    UIWindow *window = touch.window;
+    if (!window) return;
+    DSBTransientTouch *context = [DSBTransientTouch new];
+    context.screen = window.screen;
+    context.gesture = (UIPanGestureRecognizer *)gesture;
+    context.fixedStart = [window convertPoint:[touch locationInView:window]
+        toCoordinateSpace:window.screen.fixedCoordinateSpace];
+    objc_setAssociatedObject(tongue, &TouchKey, context, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
 void DSBCaptureTransientOrientation(id tongue, UIPanGestureRecognizer *gesture) {
     if (![gesture isKindOfClass:UIPanGestureRecognizer.class]
-        || gesture.state != UIGestureRecognizerStateBegan || !DSBIsTopTongue(tongue)) return;
-    objc_setAssociatedObject(tongue, &VisualEdgeKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        || gesture.state != UIGestureRecognizerStateBegan || !DSBUsesWideTransientGrabber(tongue)) return;
+    DSBTransientTouch *existing = objc_getAssociatedObject(tongue, &TouchKey);
+    if (existing.gesture == gesture) return; // do not replace the true first touch
     UIView *host = DSBRead(tongue, @"containingView");
-    if (![host isKindOfClass:UIView.class]) return;
-    UIInterfaceOrientation orientation = host.window.windowScene.interfaceOrientation;
-    SEL selector = NSSelectorFromString(@"_touchInterfaceOrientation");
-    if ([gesture respondsToSelector:selector]) {
-        UIInterfaceOrientation touch = ((UIInterfaceOrientation (*)(id, SEL))objc_msgSend)(gesture, selector);
-        if (touch != UIInterfaceOrientationUnknown) orientation = touch;
-    }
-    if (!UIInterfaceOrientationIsLandscape(orientation)) return;
+    if (![host isKindOfClass:UIView.class] || !host.window) return;
     CGPoint point = [gesture locationInView:host], delta = [gesture translationInView:host];
-    CGRect bounds = host.bounds;
-    unsigned edge = DSBStartingEdge(point.x, point.y, delta.x, delta.y,
-        bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height);
-    objc_setAssociatedObject(tongue, &VisualEdgeKey, @(edge), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    DSBTransientTouch *context = [DSBTransientTouch new];
+    context.screen = host.window.screen;
+    context.gesture = gesture;
+    CGPoint start = CGPointMake(point.x - delta.x, point.y - delta.y);
+    context.fixedStart = [host.window convertPoint:[host convertPoint:start toView:host.window]
+        toCoordinateSpace:context.screen.fixedCoordinateSpace];
+    objc_setAssociatedObject(tongue, &TouchKey, context, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 @interface DSBTransientHost : UIView
@@ -59,6 +80,39 @@ void DSBCaptureTransientOrientation(id tongue, UIPanGestureRecognizer *gesture) 
     return [self.renderer hitTest:[self convertPoint:point toView:self.renderer] withEvent:event];
 }
 @end
+
+static void DSBLayoutTransientHost(DSBTransientHost *host, UIView *container, DSBTransientTouch *touch) {
+    if (!host || !container.window) return;
+    [container layoutIfNeeded];
+    if (touch && touch.screen == container.window.screen) {
+        // Resolve into the FINAL host coordinates, not the pre-presentation
+        // coordinates captured at Began. This also works on the very first pull.
+        UIWindow *window = container.window;
+        CGPoint inWindow = [window convertPoint:touch.fixedStart fromCoordinateSpace:touch.screen.fixedCoordinateSpace];
+        CGPoint point = [container convertPoint:inWindow fromView:window];
+        CGPoint delta = [touch.gesture translationInView:container];
+        CGRect b = container.bounds;
+        unsigned edge = DSBPullEdge(point.x, point.y, delta.x, delta.y,
+            b.origin.x, b.origin.y, b.size.width, b.size.height);
+        BOOL portraitTop = edge == DSBEdgeTop && b.size.height > b.size.width;
+        CGFloat height = portraitTop ? MIN(54, MAX(20, window.safeAreaInsets.top)) : 20;
+        DSBTransientGeometry g = DSBGeometryForEdge(edge, b.origin.x, b.origin.y, b.size.width, b.size.height, height);
+        host.bounds = CGRectMake(0, 0, g.width, g.height);
+        host.center = CGPointMake(g.centerX, g.centerY);
+        host.transform = CGAffineTransformMake(g.a, g.b, g.c, g.d, 0, 0);
+    } else {
+        // Programmatic presentation without a touch: use the current scene.
+        id<UICoordinateSpace> space = container.window.windowScene.coordinateSpace ?: container.window;
+        CGRect screen = space.bounds;
+        CGFloat height = MIN(54, MAX(20, container.window.safeAreaInsets.top));
+        CGPoint p0 = [container convertPoint:screen.origin fromCoordinateSpace:space];
+        CGPoint px = [container convertPoint:CGPointMake(screen.origin.x + 1, screen.origin.y) fromCoordinateSpace:space];
+        CGPoint py = [container convertPoint:CGPointMake(screen.origin.x, screen.origin.y + 1) fromCoordinateSpace:space];
+        host.bounds = CGRectMake(0, 0, screen.size.width, height);
+        host.center = [container convertPoint:CGPointMake(CGRectGetMidX(screen), CGRectGetMinY(screen) + height/2) fromCoordinateSpace:space];
+        host.transform = CGAffineTransformMake(px.x-p0.x, px.y-p0.y, py.x-p0.x, py.y-p0.y, 0, 0);
+    }
+}
 
 @interface DSBTransientPresentation : NSObject
 @property(nonatomic, weak) UIView *arrow;
@@ -133,8 +187,14 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
     if (!DSBIsTopTongue(tongue) || ![container isKindOfClass:UIView.class] || !container.window
         || ![arrow isKindOfClass:UIView.class]) return;
 
+    DSBTransientTouch *touch = objc_getAssociatedObject(tongue, &TouchKey);
+    objc_setAssociatedObject(tongue, &TouchKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     DSBTransientPresentation *old = objc_getAssociatedObject(tongue, &TransientKey);
-    if (old.host) { [old refresh]; return; }
+    if (old.host) {
+        if (touch) DSBLayoutTransientHost(old.host, container, touch);
+        [old refresh];
+        return;
+    }
     // Finish a pending dismissal before reusing the native arrow's hidden state.
     if (old.animator.state == UIViewAnimatingStateActive) [old.animator stopAnimation:NO];
     if (old.animator.state == UIViewAnimatingStateStopped) [old.animator finishAnimationAtPosition:UIViewAnimatingPositionEnd];
@@ -148,33 +208,7 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
     host.foregroundColor = UIColor.whiteColor;
     presentation.host = host;
     [container addSubview:host];
-    // Prefer the physical edge captured from the touch, as LineageQS does.
-    // Scene-only conversion is a fallback for programmatic presentations;
-    // it cannot detect a portrait-aligned CoverSheet over a landscape app.
-    id<UICoordinateSpace> space = container.window.windowScene.coordinateSpace ?: container.window;
-    CGRect screen = space.bounds;
-    CGFloat height = MAX(20, container.window.safeAreaInsets.top);
-    height = MIN(54, height);
-    CGPoint p0 = [container convertPoint:screen.origin fromCoordinateSpace:space];
-    CGPoint px = [container convertPoint:CGPointMake(screen.origin.x + 1, screen.origin.y) fromCoordinateSpace:space];
-    CGPoint py = [container convertPoint:CGPointMake(screen.origin.x, screen.origin.y + 1) fromCoordinateSpace:space];
-    host.bounds = CGRectMake(0, 0, screen.size.width, height);
-    host.center = [container convertPoint:CGPointMake(CGRectGetMidX(screen), CGRectGetMinY(screen) + height/2) fromCoordinateSpace:space];
-    host.transform = CGAffineTransformMake(px.x-p0.x, px.y-p0.y, py.x-p0.x, py.y-p0.y, 0, 0);
-    NSNumber *visualEdge = objc_getAssociatedObject(tongue, &VisualEdgeKey);
-    // The host keeps the resulting transform through its hide animation.
-    // Consume this touch's edge so a later non-gesture presentation cannot
-    // reuse an old landscape orientation.
-    objc_setAssociatedObject(tongue, &VisualEdgeKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    if (visualEdge) {
-        CGRect bounds = container.bounds;
-        height = 20; // landscape row, not the portrait host's safe-area top
-        DSBTransientGeometry geometry = DSBGeometryForEdge(visualEdge.unsignedIntValue,
-            bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height, height);
-        host.bounds = CGRectMake(0, 0, geometry.width, geometry.height);
-        host.center = CGPointMake(geometry.centerX, geometry.centerY);
-        host.transform = CGAffineTransformMake(geometry.a, geometry.b, geometry.c, geometry.d, 0, 0);
-    }
+    DSBLayoutTransientHost(host, container, touch);
     host.renderer = [[DSBStatusBarView alloc] initWithFrame:host.bounds];
     host.renderer.nativeBar = host;
     host.renderer.transientPresentation = YES;
@@ -189,7 +223,17 @@ void DSBPresentTransientBar(id tongue, BOOL animated) {
     presentation.timer = [NSTimer timerWithTimeInterval:1 repeats:YES block:^(__unused NSTimer *timer) { [weakPresentation refresh]; }];
     [NSRunLoop.mainRunLoop addTimer:presentation.timer forMode:NSRunLoopCommonModes];
 
-    host.renderer.transform = CGAffineTransformMakeTranslation(0, -height);
+    // Native first-use host setup can finish later in the same main-queue turn.
+    // Reproject the SAME fixed start, without measuring an already-moved finger.
+    __weak UIView *weakContainer = container;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        DSBTransientPresentation *current = weakPresentation;
+        UIView *parent = weakContainer;
+        if (current.host != host || host.superview != parent) return;
+        DSBLayoutTransientHost(host, parent, touch);
+        [current refresh];
+    });
+    host.renderer.transform = CGAffineTransformMakeTranslation(0, -host.bounds.size.height);
     UICubicTimingParameters *timing = [[UICubicTimingParameters alloc]
         initWithControlPoint1:CGPointMake(.4, 0) controlPoint2:CGPointMake(.2, 1)];
     presentation.animator = [[UIViewPropertyAnimator alloc] initWithDuration:

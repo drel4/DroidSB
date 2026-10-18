@@ -60,6 +60,14 @@ static void Update(UIView *bar) {
 
 %group Fullscreen
 %hook SBGrabberTongue
+- (BOOL)isEdgeLocationInGrabberRegion:(double)location {
+    if (DSBUsesWideTransientGrabber(self)) return YES;
+    return %orig;
+}
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gesture shouldReceiveTouch:(UITouch *)touch {
+    DSBCaptureTransientTouch(self, gesture, touch);
+    return %orig;
+}
 - (void)_handlePullGesture:(UIPanGestureRecognizer *)gesture {
     DSBCaptureTransientOrientation(self, gesture);
     %orig;

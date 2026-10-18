@@ -27,6 +27,21 @@ static void check(unsigned edge, double width, double height) {
 }
 
 int main(void) {
+    // Pulls near either end of a full-width top edge must not turn into a
+    // left/right presentation. The inward vector resolves corner ambiguity.
+    for (int x = 0; x <= 568; x++) {
+        assert(DSBPullEdge(x, 3, 0, 20, 0, 0, 568, 320) == DSBEdgeTop);
+    }
+    for (int y = 0; y <= 568; y++) {
+        assert(DSBPullEdge(3, y, 20, 0, 0, 0, 320, 568) == DSBEdgeLeft);
+        assert(DSBPullEdge(317, y, -20, 0, 0, 0, 320, 568) == DSBEdgeRight);
+    }
+    // Cold first-use host transition: a fixed physical-left start (0,284)
+    // is top-center (284,0) after the host rotates. Resolve AFTER conversion.
+    assert(DSBPullEdge(0, 284, 20, 0, 0, 0, 320, 568) == DSBEdgeLeft);
+    assert(DSBPullEdge(284, 0, 0, 20, 0, 0, 568, 320) == DSBEdgeTop);
+    // A diagonal movement must not switch a touch far from its adjacent edge.
+    assert(DSBPullEdge(200, 1, 30, 20, 0, 0, 568, 320) == DSBEdgeTop);
     // Portrait-aligned SpringBoard over both landscape app orientations.
     assert(DSBStartingEdge(45, 250, 44, 0, 0, 0, 320, 568) == DSBEdgeLeft);
     assert(DSBStartingEdge(270, 250, -49, 0, 0, 0, 320, 568) == DSBEdgeRight);
