@@ -1,0 +1,10 @@
+Package: dev.drel.droidsb
+Name: DroidSB
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Android 17 / LineageOS 24 inspired native status bar replacement for iOS 15 and 16.
+Maintainer: drel4
+Author: drel4
+Section: Tweaks
+Depends: mobilesubstrate, preferenceloader, firmware (>= 15.0), firmware (<< 17.0)
+License: Apache-2.0

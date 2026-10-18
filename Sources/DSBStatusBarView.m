@@ -1,0 +1,214 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 drel4. Layout follows AOSP SystemUI, adapted for iOS geometry.
+#import "DSBStatusBarView.h"
+#import "DSBBatteryView.h"
+#import "DSBAssets.h"
+#import <CoreFoundation/CoreFoundation.h>
+
+static NSString *const Domain = @"dev.drel.droidsb";
+static NSDictionary *settings;
+static NSHashTable *views;
+
+id DSBRead(id object, NSString *key) {
+    if (!object) return nil;
+    @try { return [object valueForKey:key]; }
+    @catch (__unused NSException *e) { return nil; }
+}
+static BOOL Flag(NSString *key, BOOL fallback) {
+    id value = settings[key];
+    return [value respondsToSelector:@selector(boolValue)] ? [value boolValue] : fallback;
+}
+BOOL DSBEnabled(void) { return Flag(@"Enabled", YES); }
+static BOOL EnabledEntry(id data, NSString *key) { return [DSBRead(DSBRead(data, key), @"enabled") boolValue]; }
+
+static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef info) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        CFPreferencesAppSynchronize((__bridge CFStringRef)Domain);
+        CFArrayRef keys = CFPreferencesCopyKeyList((__bridge CFStringRef)Domain, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
+        settings = keys ? CFBridgingRelease(CFPreferencesCopyMultiple(keys, (__bridge CFStringRef)Domain, kCFPreferencesCurrentUser, kCFPreferencesAnyHost)) : @{};
+        if (keys) CFRelease(keys);
+        for (DSBStatusBarView *view in views) {
+            [view refresh];
+            [view.nativeBar setNeedsLayout];
+        }
+    });
+}
+
+@implementation DSBStatusBarView {
+    UILabel *_clock;
+    NSMutableArray<UIImageView *> *_icons;
+    DSBBatteryView *_battery;
+    NSDateFormatter *_formatter;
+    __weak UIView *_suppressed;
+    CGFloat _savedAlpha;
+    NSString *_dataType;
+    UILabel *_network;
+}
++ (void)initialize {
+    if (self != DSBStatusBarView.class) return;
+    views = [NSHashTable weakObjectsHashTable];
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, Reload,
+        CFSTR("dev.drel.droidsb/preferences-changed"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+    Reload(NULL, NULL, NULL, NULL, NULL);
+}
+- (instancetype)initWithFrame:(CGRect)frame {
+    if ((self = [super initWithFrame:frame])) {
+        self.opaque = NO;
+        self.userInteractionEnabled = NO; // native hit testing / scroll-to-top still works
+        self.clipsToBounds = YES;
+        _clock = [UILabel new];
+        _clock.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
+        _clock.isAccessibilityElement = YES;
+        [self addSubview:_clock];
+        _network = [UILabel new];
+        _network.font = [UIFont systemFontOfSize:9 weight:UIFontWeightBold];
+        [self addSubview:_network];
+        _icons = [NSMutableArray new];
+        for (NSInteger i = 0; i < 8; i++) {
+            UIImageView *icon = [UIImageView new];
+            icon.contentMode = UIViewContentModeScaleAspectFit;
+            [self addSubview:icon];
+            [_icons addObject:icon];
+        }
+        _battery = [DSBBatteryView new];
+        [self addSubview:_battery];
+        _formatter = [NSDateFormatter new];
+        UIDevice.currentDevice.batteryMonitoringEnabled = YES;
+        [views addObject:self];
+    }
+    return self;
+}
+- (void)restoreNative {
+    if (_suppressed) _suppressed.alpha = _savedAlpha;
+    _suppressed = nil;
+    self.hidden = YES;
+}
+- (BOOL)mustKeepNative:(id)data {
+    // Unknown active entries are retained as a complete stock bar. This also
+    // preserves native actionable call/recording/hotspot chips and sensor dots.
+    NSSet *supported = [NSSet setWithArray:@[@"timeEntry", @"shortTimeEntry", @"dateEntry", @"mainBatteryEntry",
+        @"cellularEntry", @"wifiEntry", @"airplaneModeEntry", @"alarmEntry", @"quietModeEntry",
+        @"deviceNameEntry", @"personNameEntry", @"vpnEntry", @"locationEntry"]];
+    id keys = DSBRead(data, @"existingEntryKeys");
+    if (![keys conformsToProtocol:@protocol(NSFastEnumeration)]) return YES;
+    for (NSString *key in keys) {
+        if (![supported containsObject:key] && EnabledEntry(data, key)) return YES;
+    }
+    // A second SIM needs separate attribution/VoWiFi handling, not a guessed bar.
+    if (EnabledEntry(data, @"secondaryCellularEntry")) return YES;
+    return NO;
+}
+- (BOOL)refresh {
+    UIView *bar = self.nativeBar;
+    id data = DSBRead(bar, @"currentAggregatedData") ?: DSBRead(bar, @"currentData");
+    UIView *foreground = DSBRead(bar, @"foregroundView");
+    BOOL assetsReady = DSBIcon(@"ic_wifi_3", 12) && DSBBatteryGlyphs().count;
+    if (!DSBEnabled() || !bar || !data || ![foreground isKindOfClass:UIView.class] || !assetsReady || [self mustKeepNative:data]) {
+        [self restoreNative];
+        return NO;
+    }
+    if (_suppressed != foreground) {
+        [self restoreNative];
+        _suppressed = foreground;
+        _savedAlpha = foreground.alpha;
+    }
+    foreground.alpha = 0; // leave native layout/data and status-bar gestures intact
+    self.hidden = NO;
+    self.frame = bar.bounds;
+    if (bar.subviews.lastObject != self) [bar bringSubviewToFront:self];
+
+    UIColor *ink = DSBRead(bar, @"foregroundColor") ?: DSBRead(DSBRead(bar, @"styleAttributes"), @"textColor");
+    if (![ink isKindOfClass:UIColor.class]) ink = UIColor.labelColor;
+    self.tintColor = ink;
+    _clock.textColor = ink;
+    _network.textColor = ink;
+    CGFloat white = 1, alpha = 1;
+    if (![ink getWhite:&white alpha:&alpha]) {
+        CGFloat r, g, b;
+        if ([ink getRed:&r green:&g blue:&b alpha:&alpha]) white = .2126*r + .7152*g + .0722*b;
+    }
+    _battery.lightContent = white > .5;
+    _formatter.locale = NSLocale.currentLocale;
+    _formatter.timeZone = NSTimeZone.localTimeZone;
+    if (Flag(@"Use24HourClock", NO)) _formatter.dateFormat = @"HH:mm";
+    else [_formatter setLocalizedDateFormatFromTemplate:@"j:mm"];
+    // Use the native clock when available: same system update cadence, locale,
+    // and accessibility. A user-selected 24h override uses the system date.
+    NSString *nativeTime = DSBRead(DSBRead(data, @"timeEntry"), @"string");
+    _clock.text = !Flag(@"Use24HourClock", NO) && nativeTime.length ? nativeTime : [_formatter stringFromDate:NSDate.date];
+    _clock.accessibilityLabel = _clock.text;
+
+    id battery = DSBRead(data, @"mainBatteryEntry");
+    NSNumber *capacity = DSBRead(battery, @"capacity");
+    _battery.level = capacity ? MAX(0, MIN(100, capacity.integerValue)) : -1;
+    // The private entry's state enum is not ABI-stable; use the public device
+    // state instead of mistaking an unplugged/unknown battery for charging.
+    UIDeviceBatteryState state = UIDevice.currentDevice.batteryState;
+    _battery.charging = state == UIDeviceBatteryStateCharging || state == UIDeviceBatteryStateFull;
+    _battery.powerSave = [DSBRead(battery, @"saverModeActive") boolValue];
+    _battery.showPercent = Flag(@"ShowBatteryPercent", YES);
+    _battery.accessibilityLabel = _battery.level < 0 ? @"Battery level unknown" : [NSString stringWithFormat:@"Battery %ld percent%@%@", (long)_battery.level, _battery.charging ? @", charging" : @"", _battery.powerSave ? @", low power mode" : @""];
+    [_battery setNeedsDisplay];
+    _battery.hidden = !EnabledEntry(data, @"mainBatteryEntry");
+
+    NSMutableArray *names = [NSMutableArray new];
+    // Android right-side ordering: policy icons, airplane/mobile, Wi-Fi, battery.
+    if (EnabledEntry(data, @"alarmEntry")) [names addObject:@"ic_alarm"];
+    if (EnabledEntry(data, @"quietModeEntry")) [names addObject:@"ic_qs_dnd"];
+    if (EnabledEntry(data, @"locationEntry")) [names addObject:@"ic_location"];
+    if (EnabledEntry(data, @"vpnEntry")) [names addObject:@"ic_statusbar_vpn"];
+    BOOL airplane = EnabledEntry(data, @"airplaneModeEntry");
+    BOOL wifi = EnabledEntry(data, @"wifiEntry");
+    BOOL cellular = !airplane && EnabledEntry(data, @"cellularEntry");
+    if (airplane) [names addObject:@"stat_sys_airplane_mode"];
+    if (cellular) {
+        NSInteger bars = [DSBRead(DSBRead(data, @"cellularEntry"), @"displayValue") integerValue];
+        [names addObject:[NSString stringWithFormat:@"ic_mobile_%ld_4_bar", (long)MAX(0, MIN(4, bars))]];
+    }
+    if (wifi) {
+        NSInteger bars = [DSBRead(DSBRead(data, @"wifiEntry"), @"displayValue") integerValue];
+        [names addObject:[NSString stringWithFormat:@"ic_wifi_%ld", (long)MAX(0, MIN(3, bars))]];
+    }
+    for (NSUInteger i = 0; i < _icons.count; i++) {
+        _icons[i].hidden = i >= names.count;
+        _icons[i].image = i < names.count ? DSBIcon(names[i], 12) : nil;
+    }
+    // Do not guess Apple's numeric RAT enum. Native string/badge may contain
+    // actual carrier text; display only explicitly recognizable technology.
+    NSString *badge = DSBRead(DSBRead(data, @"cellularEntry"), @"badgeString");
+    NSSet *types = [NSSet setWithArray:@[@"G", @"E", @"3G", @"4G", @"LTE", @"5G", @"5G+", @"5G E"]];
+    _network.text = cellular && !wifi && [types containsObject:badge ?: @""] ? badge : @"";
+    [self setNeedsLayout];
+    return YES;
+}
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    CGFloat width = self.bounds.size.width, height = self.bounds.size.height;
+    if (height < 1 || width < 1) return;
+    // On the SE this is 20pt. On notched phones, keep clear of the central
+    // cutout and use the native safe-area side insets in landscape.
+    UIEdgeInsets safe = self.nativeBar.window.safeAreaInsets;
+    CGFloat left = MAX(7, safe.left), right = width - MAX(7, safe.right);
+    CGFloat center = height > 24 ? height - 14 : height / 2;
+    if (!_battery.hidden) {
+        CGFloat bw = _battery.charging || _battery.powerSave ? 31 : 27;
+        _battery.frame = CGRectMake(right - bw, center - 6.5, 31, 13);
+        right -= bw + 5;
+    }
+    for (UIImageView *icon in _icons.reverseObjectEnumerator) {
+        if (icon.hidden) continue;
+        CGFloat iw = icon.image.size.width;
+        icon.frame = CGRectMake(right - iw, center - 6, iw, 12);
+        right -= iw + 4;
+    }
+    CGSize ns = [_network sizeThatFits:CGSizeMake(40, 14)];
+    _network.frame = CGRectMake(right - ns.width, center - 6, ns.width, 12);
+    if (_network.text.length) right -= ns.width + 3;
+    CGFloat maxClock = width > 350 && height > 24 ? width * .35 - left : right - left - 12;
+    _clock.frame = CGRectMake(left, center - 8, MAX(0, MIN(100, maxClock)), 16);
+}
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    if (!self.window) [self restoreNative];
+}
+@end

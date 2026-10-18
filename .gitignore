@@ -1,0 +1,7 @@
+.theos/
+/packages/
+dist/
+linuxserver.txt
+*.log
+__pycache__/
+.build-tools/

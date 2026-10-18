@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>items</key><array>
+<dict><key>cell</key><string>PSGroupCell</string><key>label</key><string>DroidSB</string>
+<key>footerText</key><string>Android 17 / LineageOS 24 status bar. Designed to pair with LineageQS. Changes apply immediately; reopen an app if its status bar has not refreshed.</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>Enabled</string>
+<key>key</key><string>Enabled</string><key>default</key><true/>
+<key>defaults</key><string>dev.drel.droidsb</string><key>PostNotification</key><string>dev.drel.droidsb/preferences-changed</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>Battery percentage inside icon</string>
+<key>key</key><string>ShowBatteryPercent</string><key>default</key><true/>
+<key>defaults</key><string>dev.drel.droidsb</string><key>PostNotification</key><string>dev.drel.droidsb/preferences-changed</string></dict>
+<dict><key>cell</key><string>PSSwitchCell</string><key>label</key><string>24-hour clock</string>
+<key>key</key><string>Use24HourClock</string><key>default</key><false/>
+<key>defaults</key><string>dev.drel.droidsb</string><key>PostNotification</key><string>dev.drel.droidsb/preferences-changed</string></dict>
+<dict><key>cell</key><string>PSGroupCell</string>
+<key>footerText</key><string>Calls, recording, camera/microphone indicators and unsupported status items retain the native iOS bar. Android is a trademark of Google LLC. Not affiliated with Google or LineageOS.</string></dict>
+</array><key>title</key><string>DroidSB</string></dict></plist>
