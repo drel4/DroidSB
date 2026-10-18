@@ -19,6 +19,9 @@ on-device confirmation.
   must leave stock visible. Investigate a persistent stock bar before widening hooks.
 - Verify black on white / white on dark across SpringBoard and apps; animations.
 - Check clock minute rollover, locale, 12/24h, time-zone/time changes and midnight.
+- Compare clock/carrier lettering with LineageQS: Google Sans Flex, 500 weight,
+  13pt optical size. Test both with and without LineageQS installed; verify shared
+  font registration does not affect either tweak. Battery digits remain vectors.
 - Lock/unlock, landscape, app switcher, launch/exit full-screen apps, rotation.
 - Connect/disconnect AirPods with VPN active, both unlocked and on the lock
   screen. Verify DroidSB stays visible, the VPN key is legible, and phone battery

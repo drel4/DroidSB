@@ -8,7 +8,12 @@ if [[ -n "${DROIDSB_TOOLCHAIN:-}" ]]; then
 fi
 python3 scripts/check-source.py
 make clean "${toolchain_args[@]}"
+build_stamp="$(mktemp)"
+trap 'rm -f "$build_stamp"' EXIT
 make package FINALPACKAGE=1 "${toolchain_args[@]}" "$@"
-for package in packages/*.deb; do
+built_count=0
+while IFS= read -r -d '' package; do
     python3 scripts/verify-package.py "$package"
-done
+    built_count=$((built_count + 1))
+done < <(find packages -maxdepth 1 -name '*.deb' -newer "$build_stamp" -print0)
+[[ "$built_count" -gt 0 ]] || { echo 'No new package produced' >&2; exit 1; }

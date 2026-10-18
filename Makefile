@@ -7,7 +7,7 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = DroidSB
 DroidSB_FILES = Tweak.xm $(wildcard Sources/*.m)
 DroidSB_CFLAGS = -fobjc-arc -ISources
-DroidSB_FRAMEWORKS = UIKit CoreGraphics
+DroidSB_FRAMEWORKS = UIKit CoreGraphics CoreText
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += Prefs
 include $(THEOS_MAKE_PATH)/aggregate.mk

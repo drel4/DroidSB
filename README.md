@@ -5,7 +5,7 @@ the native iOS status-bar host. Designed to pair with
 [LineageQS](https://github.com/drel4/LineageQS).
 
 **Status: experimental. v0.1.0 confirmed working by the user on the SE below;
-v0.1.1 Bluetooth/lock-screen fixes still need device confirmation.**
+v0.1.1 Bluetooth/lock-screen/font fixes still need device confirmation.**
 Primary test target: iPhone SE (2016), iOS 15.8.2, rootless jailbreak.
 arm64 (SE/A9) and arm64e slices are included. iOS 16 and notched layouts still
 need device validation; the original SE cannot run iOS 16.
@@ -13,6 +13,8 @@ need device validation; the original SE cannot run iOS 16.
 ## What it does
 
 - Left-aligned, localized clock; Android 17 rounded mobile and Wi-Fi glyphs.
+- Google Sans Flex clock, carrier and network labels, using the same unmodified
+  variable font and CoreText weight/optical-size approach as LineageQS.
 - Android unified horizontal battery with vector digits, charging bolt,
   power-saving attribution, charge fill and light/dark foreground adaptation.
 - Airplane mode, alarm, DND, VPN, location, Bluetooth and lock from iOS's status data.
@@ -28,8 +30,9 @@ Calls, recording/hotspot chips, privacy indicators, dual SIM and other unsupport
 active native entries use the **complete stock bar**. This is intentional in this
 first version. Notification app icons are not ported yet. Carrier RAT labels
 appear only when iOS supplies a recognized string;
-the tweak does not guess private numeric enums. Clock uses the iOS system font,
-not Google Sans/Roboto. No Android services run on iOS.
+the tweak does not guess private numeric enums. Google Sans Flex is bundled under
+SIL OFL 1.1 and does not require LineageQS to be installed. The system font is
+used only if loading the bundled font fails. No Android services run on iOS.
 
 ## Build (Linux / Theos)
 
@@ -73,7 +76,8 @@ apt remove dev.drel.droidsb
 
 ## Upstream / licensing
 
-Apache-2.0. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+Code: Apache-2.0. Bundled Google Sans Flex: SIL OFL 1.1 (license next to font).
+See [LICENSE](LICENSE), [NOTICE](NOTICE), [reference/fonts.json](reference/fonts.json), and
 [reference/manifest.json](reference/manifest.json). Reference sources are pinned to
 [`LineageOS/android_frameworks_base`, lineage-24.0, commit 7f6de40](https://github.com/LineageOS/android_frameworks_base/tree/7f6de40b6429462d47ba9ba351b99943269c8067).
 Upstream Android source is adapted to UIKit; this is not binary-compatible

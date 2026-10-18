@@ -44,8 +44,11 @@ with tempfile.TemporaryDirectory(prefix="droidsb-verify-") as temp:
     assert len(json.loads((catalog / "icons.json").read_text())) >= 14
     for name in ("LICENSE", "NOTICE", "battery-glyphs.json"):
         assert (catalog / name).stat().st_size > 0
+    font_manifest = json.loads((Path(__file__).resolve().parents[1] / "reference/fonts.json").read_text())
+    for entry in font_manifest["files"]:
+        assert hashlib.sha256((catalog / "fonts" / entry["path"]).read_bytes()).hexdigest() == entry["sha256"], "Font/license missing or modified in package"
     with (lib / "PreferenceBundles/DroidSBPrefs.bundle/Root.plist").open("rb") as stream:
         plistlib.load(stream)
     assert not (root / "Library").exists(), "Rootful payload accidentally packaged"
     assert not list(root.rglob("linuxserver.txt")), "Host credentials in package"
-    print("PASS: rootless paths, catalogs, preference plist, licenses; no host config")
+    print("PASS: rootless paths, catalogs, preference plist, Google Sans Flex + OFL, licenses; no host config")

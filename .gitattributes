@@ -1,3 +1,5 @@
 * text=auto eol=lf
 reference/upstream/** -text
 *.deb binary
+*.ttf binary
+**/fonts/GoogleSansFlex-OFL.txt -text

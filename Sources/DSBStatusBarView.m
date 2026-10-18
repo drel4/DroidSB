@@ -3,6 +3,7 @@
 #import "DSBStatusBarView.h"
 #import "DSBBatteryView.h"
 #import "DSBAssets.h"
+#import "DSBFont.h"
 #import <CoreFoundation/CoreFoundation.h>
 
 static NSString *const Domain = @"dev.drel.droidsb";
@@ -56,11 +57,11 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         self.userInteractionEnabled = NO; // native hit testing / scroll-to-top still works
         self.clipsToBounds = YES;
         _clock = [UILabel new];
-        _clock.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
+        _clock.font = DSBSansFont(13, 500);
         _clock.isAccessibilityElement = YES;
         [self addSubview:_clock];
         _network = [UILabel new];
-        _network.font = [UIFont systemFontOfSize:9 weight:UIFontWeightBold];
+        _network.font = DSBSansFont(9, 700);
         [self addSubview:_network];
         _icons = [NSMutableArray new];
         for (NSInteger i = 0; i < 10; i++) {

@@ -29,4 +29,12 @@ for path in [*ROOT.glob("Prefs/Resources/*.plist"), *ROOT.glob("layout/Library/P
         plistlib.load(stream)
 for name in ("LICENSE", "NOTICE"):
     assert (ROOT / name).read_bytes() == (assets / name).read_bytes(), f"Bundled {name} is stale"
-print(f"PASS: {len(manifest['files'])} upstream hashes, reproducible assets, battery glyphs, plists, bundled licenses")
+font_manifest = json.loads((ROOT / "reference/fonts.json").read_text())
+for entry in font_manifest["files"]:
+    data = (assets / "fonts" / entry["path"]).read_bytes()
+    assert hashlib.sha256(data).hexdigest() == entry["sha256"], entry["path"]
+font_data = (assets / "fonts/GoogleSansFlex.ttf").read_bytes()
+assert font_data[:4] == b"\x00\x01\x00\x00", "Invalid TrueType font"
+name = "GoogleSansFlex-Regular"
+assert name.encode("utf-16-be") in font_data or name.encode() in font_data, "Wrong bundled font"
+print(f"PASS: {len(manifest['files'])} upstream hashes, reproducible assets, battery glyphs, plists, font identity/provenance and licenses")
