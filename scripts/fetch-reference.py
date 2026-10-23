@@ -13,6 +13,20 @@ import urllib.request
 COMMIT = "7f6de40b6429462d47ba9ba351b99943269c8067"
 BASE = f"https://raw.githubusercontent.com/LineageOS/android_frameworks_base/{COMMIT}/"
 FILES = [
+    "libs/WindowManager/Shell/shared/src/com/android/wm/shell/shared/animation/Interpolators.java",
+    "packages/SystemUI/src/com/android/systemui/statusbar/events/PrivacyDotViewController.kt",
+    "packages/SystemUI/res/drawable/ic_privacy_camera.xml",
+    "packages/SystemUI/res/drawable/ic_privacy_mic.xml",
+    "packages/SystemUI/res/drawable/statusbar_privacy_chip_bg.xml",
+    "packages/SystemUI/res/layout/ongoing_privacy_chip.xml",
+    "packages/SystemUI/src/com/android/systemui/privacy/PrivacyItem.kt",
+    "packages/SystemUI/src/com/android/systemui/privacy/PrivacyItemController.kt",
+    "packages/SystemUI/src/com/android/systemui/privacy/OngoingPrivacyChip.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/events/SystemEventCoordinator.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/events/SystemEventChipAnimationController.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/events/SystemStatusAnimationScheduler.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/events/SystemStatusAnimationSchedulerImpl.kt",
+    "packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/StatusBarSystemEventAnimator.kt",
     "packages/SystemUI/src/com/android/systemui/statusbar/phone/AutoHideControllerImpl.java",
     "packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBarViewController.kt",
     "packages/SystemUI/src/com/android/systemui/statusbar/phone/CentralSurfacesImpl.java",

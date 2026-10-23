@@ -59,7 +59,8 @@ This follows native indicator state; it does not assert whether iOS is encoding
 video during the popup, control ReplayKit, or invent a paused-recording API.
 As of v0.1.5, unclassified activity does not restore the native bar. During the
 initial countdown a chip may not appear until capture starts. Other unported
-native activity/privacy indicators are omitted rather than causing reversion.
+native activity indicators are omitted rather than causing reversion. Camera/mic
+privacy indicators have a separate native-driven presentation as of 0.1.14.
 
 The timer uses a plausible native `displayStartDate` rather than starting over
 when a view is recreated. If no usable start date is available, display `REC`.

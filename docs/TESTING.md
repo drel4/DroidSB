@@ -24,6 +24,18 @@ It also removes status-entry-triggered stock fallback, including network activit
 
 ## Required before claiming stable
 
+- 0.1.14: compare fullscreen slide against Android. Verify nonlinear movement,
+  physical-pixel steps, constant opacity and complete 275/340 ms entry/exit.
+  Interrupt entry with a shade pull, and re-reveal during exit: no endpoint snap
+  or premature native-completion cut. Repeat after rotation and with Reduce Motion.
+- Start camera, microphone and both together: verify correctly classified icons
+  where native data exposes them, source-timed chip-to-dot transition and clean
+  green dot (no black icon inside). Stop, restart before the hold expires, then
+  stop again: no stale privacy state. Check app-hosted priority/generic fallback.
+- Check the right-side battery/network icons fade/move and return without
+  affecting the clock/recording chip. Location stays a separate status icon.
+- Lock/unlock repeatedly: the small iOS padlock must be absent; security and the
+  large lock-screen clock must remain unchanged. Keep 0.1.10 as recovery.
 - 0.1.13: reveal the fullscreen row over a bright video/game scene. The dark
   background must slide down together with the glyphs, not fade in place.
   Check slide-out, interrupted reveal/dismiss, both landscapes and Reduce Motion.

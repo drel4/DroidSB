@@ -18,6 +18,9 @@ and the LineageOS android_frameworks_base tree, licensed under Apache 2.0:
   layout/dimensions/colours and drawing code (recording chip design and references).
 - Framework InsetsController/InsetsPolicy and SystemUI bar transitions
   (transient status-bar animation timing and easing references).
+- SystemUI privacy chip/dot drawables, dimensions, SystemEventCoordinator,
+  SystemEventChipAnimationController, SystemStatusAnimationScheduler and
+  StatusBarSystemEventAnimator (privacy appearance, choreography and timing).
 - SystemUI AutoHideControllerImpl, PhoneStatusBarViewController and
   CentralSurfacesImpl (transient outside-touch dismissal and timeout references).
 

@@ -13,7 +13,7 @@ assets = {}
 paths = list((SRC / "packages/SettingsLib/res/drawable").glob("ic_*.xml"))
 paths += [SRC / f"packages/SystemUI/res/drawable/{n}.xml" for n in
           ("stat_sys_airplane_mode", "ic_alarm", "stat_sys_vpn_ic", "ic_location",
-           "ic_bluetooth_connected", "ic_device_lock_on")]
+           "ic_bluetooth_connected", "ic_device_lock_on", "ic_privacy_camera", "ic_privacy_mic")]
 paths += [SRC / f"packages/SystemUI/res/drawable/{n}.xml" for n in
           ("stat_sys_rotate_portrait", "stat_sys_rotate_landscape", "ic_screenrecord")]
 paths += [SRC / "core/res/res/drawable/ic_qs_dnd.xml"]

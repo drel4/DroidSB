@@ -12,3 +12,6 @@ echo 'PASS: portrait corner top-lock, landscape top-axis placement, oriented-hos
 cc -std=c11 -Wall -Wextra -Werror -ISources tests/recording-state.c -o "$layout_binary"
 "$layout_binary"
 echo 'PASS: recording popup capture gaps, Cancel/continue, stop cleanup, changed activities and mirroring exclusion'
+cc -std=c11 -Wall -Wextra -Werror -ISources tests/motion.c -o "$layout_binary"
+"$layout_binary"
+echo 'PASS: Android cubic/integer inset motion, interruption position and staged privacy-chip/dot geometry'

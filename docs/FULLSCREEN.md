@@ -17,6 +17,19 @@ stationary clipping host. The background and glyphs travel together in both
 directions; the scrim no longer fades in place behind moving icons. Slide
 timings, orientation geometry and bar-only interaction handling are unchanged.
 
+0.1.14 reproduces the transient motion calculation from `InsetsController`:
+linear elapsed fraction, cubic `(0.4, 0, 0.2, 1)` position interpolation, then
+truncation of interpolated physical-pixel insets. A display-link driver applies
+those positions directly without inherited UIKit animation transactions. The
+same row contains both background and glyphs, with constant opacity. Entrance
+starts only after the deferred geometry pass. Interrupted entry retains its
+current offset; native completion no longer forcibly truncates the 340 ms exit.
+No emphasized curve, spring or subjective motion tuning is substituted.
+
+The timing and mathematical motion path are reproduced; native iOS bar height,
+orientation/gesture ownership, scrim styling and Reduce Motion remain platform
+adaptations. Different displays/refresh rates do not produce identical captures.
+
 The row lives in the existing SpringBoard grabber host, not a new overlay window.
 The physical starting-edge approach was adapted from LineageQS: SpringBoard's
 scene may remain portrait-aligned over a landscape app. As of 0.1.8, the actual

@@ -3,6 +3,8 @@
 #import "DSBTransientBar.h"
 #import "DSBStatusBarView.h"
 #import "DSBTransientGeometry.h"
+#import "DSBFrameAnimator.h"
+#import "DSBMotion.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <UIKit/UIGestureRecognizerSubclass.h>
@@ -176,7 +178,7 @@ static void DSBLayoutTransientHost(DSBTransientHost *host, UIView *container, DS
 @property(nonatomic, weak) UIView *arrow;
 @property(nonatomic) BOOL arrowWasHidden;
 @property(nonatomic, strong) DSBTransientHost *host;
-@property(nonatomic, strong) UIViewPropertyAnimator *animator;
+@property(nonatomic, strong) DSBFrameAnimator *animator;
 @property(nonatomic, strong) NSTimer *timer;
 @property(nonatomic, weak) id tongue;
 @property(nonatomic, weak) UIPanGestureRecognizer *pullGesture;
@@ -239,18 +241,23 @@ static void DSBLayoutTransientHost(DSBTransientHost *host, UIView *container, DS
         }
         return;
     }
-    [self.animator stopAnimation:YES];
+    // Preserve the current onscreen position if a pull/dismiss interrupts entry.
+    // stopAnimation:YES leaves the model at the target and can cause a snap.
+    if (self.animator.state == UIViewAnimatingStateActive) {
+        [self.animator stopAnimation:NO];
+        [self.animator finishAnimationAtPosition:UIViewAnimatingPositionCurrent];
+    }
     DSBTransientHost *host = self.host;
     UIView *arrow = self.arrow;
     BOOL hidden = self.arrowWasHidden;
     self.host = nil;
-    // InsetsController's transient MOVE_OUT duration and material easing.
-    UICubicTimingParameters *timing = [[UICubicTimingParameters alloc]
-        initWithControlPoint1:CGPointMake(.4, 0) controlPoint2:CGPointMake(.2, 1)];
-    self.animator = [[UIViewPropertyAnimator alloc] initWithDuration:
-        animated && !UIAccessibilityIsReduceMotionEnabled() ? .340 : 0 timingParameters:timing];
-    [self.animator addAnimations:^{ host.renderer.transform = CGAffineTransformMakeTranslation(0, -host.bounds.size.height); }];
-    [self.animator addCompletion:^(__unused UIViewAnimatingPosition position) {
+    CGFloat scale = host.window.screen.scale ?: 1;
+    double height = host.bounds.size.height * scale;
+    double start = host.renderer.transform.ty * scale;
+    self.animator = [[DSBFrameAnimator alloc] initWithDuration:
+        animated && !UIAccessibilityIsReduceMotionEnabled() ? DSBTransientDuration(0) : 0 update:^(double fraction) {
+        host.renderer.transform = CGAffineTransformMakeTranslation(0, DSBTransientOffset(fraction, height, start, 0)/scale);
+    } completion:^(__unused UIViewAnimatingPosition position) {
         [host removeFromSuperview];
         arrow.hidden = hidden;
     }];
@@ -345,8 +352,10 @@ void DSBPresentTransientBar(id tongue, BOOL animated, BOOL autoDismiss) {
     presentation.timer = [NSTimer timerWithTimeInterval:1 repeats:YES block:^(__unused NSTimer *timer) { [weakPresentation refresh]; }];
     [NSRunLoop.mainRunLoop addTimer:presentation.timer forMode:NSRunLoopCommonModes];
 
-    // Native first-use host setup can finish later in the same main-queue turn.
-    // Reproject the SAME fixed start, without measuring an already-moved finger.
+    // Wait for first-use host geometry BEFORE starting the compositor timeline.
+    // Don't re-layout the animated row partway through its entrance, or inherit
+    // the native grabber's enclosing animation transaction.
+    host.renderer.transform = CGAffineTransformMakeTranslation(0, -host.bounds.size.height);
     __weak UIView *weakContainer = container;
     dispatch_async(dispatch_get_main_queue(), ^{
         DSBTransientPresentation *current = weakPresentation;
@@ -354,12 +363,14 @@ void DSBPresentTransientBar(id tongue, BOOL animated, BOOL autoDismiss) {
         if (current.host != host || host.superview != parent) return;
         DSBLayoutTransientHost(host, parent, touch);
         [current refresh];
+        if (current.host != host) return;
+        host.renderer.transform = CGAffineTransformMakeTranslation(0, -host.bounds.size.height);
+        CGFloat scale = host.window.screen.scale ?: 1;
+        double height = host.bounds.size.height * scale;
+        current.animator = [[DSBFrameAnimator alloc] initWithDuration:
+            animated && !UIAccessibilityIsReduceMotionEnabled() ? DSBTransientDuration(1) : 0 update:^(double fraction) {
+            host.renderer.transform = CGAffineTransformMakeTranslation(0, DSBTransientOffset(fraction, height, -height, 1)/scale);
+        } completion:nil];
+        [current.animator startAnimation];
     });
-    host.renderer.transform = CGAffineTransformMakeTranslation(0, -host.bounds.size.height);
-    UICubicTimingParameters *timing = [[UICubicTimingParameters alloc]
-        initWithControlPoint1:CGPointMake(.4, 0) controlPoint2:CGPointMake(.2, 1)];
-    presentation.animator = [[UIViewPropertyAnimator alloc] initWithDuration:
-        animated && !UIAccessibilityIsReduceMotionEnabled() ? .275 : 0 timingParameters:timing];
-    [presentation.animator addAnimations:^{ host.renderer.transform = CGAffineTransformIdentity; }];
-    [presentation.animator startAnimation];
 }

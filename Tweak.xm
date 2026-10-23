@@ -4,10 +4,13 @@
 #import <objc/runtime.h>
 #import "DSBStatusBarView.h"
 #import "DSBTransientBar.h"
+#import "DSBPrivacyView.h"
 
 @interface _UIStatusBar : UIView
 @end
 @interface SBGrabberTongue : NSObject
+@end
+@interface SBRecordingIndicatorManager : NSObject
 @end
 
 static char ViewKey;
@@ -86,7 +89,9 @@ static void Update(UIView *bar) {
     %orig;
 }
 - (void)_didDismiss {
-    DSBDismissTransientBar(self, NO);
+    // Native completion must not truncate the custom 340 ms exit to its own
+    // shorter grabber timeline. Teardown/uninstall still forces cleanup below.
+    DSBDismissTransientBar(self, YES);
     %orig;
 }
 - (void)uninstall {
@@ -100,6 +105,26 @@ static void Update(UIView *bar) {
 %end
 %end
 
+%group PrivacyManager
+%hook SBRecordingIndicatorManager
+- (void)_updateIndicatorStyleForSensorActivityAttributions:(id)attributions {
+    %orig;
+    id snapshot = [attributions copy];
+    dispatch_async(dispatch_get_main_queue(), ^{ DSBPrivacyManagerUpdated(self, snapshot); });
+}
+%end
+%end
+
+%group PrivacyAttributions
+%hook SBRecordingIndicatorManager
+- (void)setActiveCameraAndMicrophoneActivityAttributions:(id)attributions {
+    %orig;
+    id snapshot = [attributions copy];
+    dispatch_async(dispatch_get_main_queue(), ^{ DSBPrivacyManagerUpdated(self, snapshot); });
+}
+%end
+%end
+
 %ctor {
     @autoreleasepool {
         // UIKit bundle filtering covers SpringBoard and app-owned status bars;
@@ -108,6 +133,13 @@ static void Update(UIView *bar) {
         if (@available(iOS 15.0, *)) {
             if (NSClassFromString(@"_UIStatusBar")) { %init; }
             if (NSClassFromString(@"SBGrabberTongue")) { %init(Fullscreen); }
+            Class privacy = NSClassFromString(@"SBRecordingIndicatorManager");
+            if (privacy && class_getInstanceMethod(privacy, NSSelectorFromString(@"_updateIndicatorStyleForSensorActivityAttributions:"))) {
+                %init(PrivacyManager);
+            }
+            if (privacy && class_getInstanceMethod(privacy, NSSelectorFromString(@"setActiveCameraAndMicrophoneActivityAttributions:"))) {
+                %init(PrivacyAttributions);
+            }
         }
     }
 }

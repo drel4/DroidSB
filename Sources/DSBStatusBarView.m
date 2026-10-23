@@ -6,6 +6,7 @@
 #import "DSBFont.h"
 #import "DSBRecordingChip.h"
 #import "DSBRecordingLayout.h"
+#import "DSBPrivacyView.h"
 #import <CoreFoundation/CoreFoundation.h>
 
 static NSString *const Domain = @"dev.drel.droidsb";
@@ -23,6 +24,12 @@ static BOOL Flag(NSString *key, BOOL fallback) {
 }
 BOOL DSBEnabled(void) { return Flag(@"Enabled", YES); }
 static BOOL EnabledEntry(id data, NSString *key) { return [DSBRead(DSBRead(data, key), @"enabled") boolValue]; }
+static void Place(UIView *view, CGRect frame) {
+    // Privacy animation translates system chrome. Assigning frame under that
+    // transform would cancel/distort the motion; bounds/center preserve it.
+    view.bounds = (CGRect){CGPointZero,frame.size};
+    view.center = CGPointMake(CGRectGetMidX(frame),CGRectGetMidY(frame));
+}
 
 static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef info) {
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -53,6 +60,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     BOOL _hasLayout;
     BOOL _lastChipShown;
     CGSize _lastLayoutSize;
+    DSBPrivacyView *_privacy;
 }
 + (void)initialize {
     if (self != DSBStatusBarView.class) return;
@@ -86,11 +94,17 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
         _recordingChip.hidden = YES;
         [_recordingChip addTarget:self action:@selector(recordingTapped:) forControlEvents:UIControlEventTouchUpInside];
         [self addSubview:_recordingChip];
+        _privacy = [DSBPrivacyView new];
+        __weak DSBStatusBarView *weakSelf = self;
+        _privacy.frameChanged = ^{ [weakSelf privacyFrameChanged]; };
+        [self addSubview:_privacy];
         _formatter = [NSDateFormatter new];
         UIDevice.currentDevice.batteryMonitoringEnabled = YES;
         [views addObject:self];
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(captureChanged:)
             name:UIScreenCapturedDidChangeNotification object:nil];
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(privacyChanged:)
+            name:DSBPrivacyChangedNotification object:nil];
     }
     return self;
 }
@@ -101,8 +115,19 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     [_recordingChip setRecordingVisible:NO animated:NO];
     _hasLayout = NO;
     _lastIconNames = nil;
+    [_privacy reset];
+    [self privacyFrameChanged];
     [_recordingTimer invalidate];
     _recordingTimer = nil;
+}
+- (void)privacyChanged:(NSNotification *)notification { [self refresh]; }
+- (void)privacyFrameChanged {
+    CGFloat alpha = _privacy.chromeAlpha;
+    CGAffineTransform transform = CGAffineTransformMakeTranslation(_privacy.chromeShift,0);
+    for (UIView *view in _icons) { view.alpha = alpha; view.transform = transform; }
+    _battery.alpha = _network.alpha = alpha;
+    _battery.transform = _network.transform = transform;
+    [self setNeedsLayout];
 }
 - (void)captureChanged:(NSNotification *)notification {
     __weak DSBStatusBarView *weakSelf = self;
@@ -171,6 +196,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     }
     foreground.alpha = 0; // leave native layout/data and status-bar gestures intact
     self.hidden = NO;
+    [_privacy setActivityMask:DSBPrivacyMaskForBar(bar,data)];
     _recoveryAttempts = 0;
     _clock.font = DSBSansFont(13, 500);
     _network.font = DSBSansFont(9, 700);
@@ -239,7 +265,7 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
 
     NSMutableArray *names = [NSMutableArray new];
     // Android right-side ordering: policy icons, airplane/mobile, Wi-Fi, battery.
-    if (EnabledEntry(data, @"lockEntry")) [names addObject:@"ic_device_lock_on"];
+    // The small iOS lockEntry padlock is not an Android status-bar slot.
     // Android config_statusBarIconsToExclude hides status_bar_rotate by default.
     // No status-entry fallback exists; rotation lock is simply not drawn.
     if (EnabledEntry(data, @"alarmEntry")) [names addObject:@"ic_alarm"];
@@ -307,20 +333,24 @@ static void Reload(CFNotificationCenterRef center, void *observer, CFStringRef n
     UIEdgeInsets safe = self.nativeBar.window.safeAreaInsets;
     CGFloat left = MAX(7, safe.left), right = width - MAX(7, safe.right);
     CGFloat center = height > 24 ? height - 14 : height / 2;
+    CGFloat privacyHeight = MIN(26,height);
+    _privacy.frame = CGRectMake(MAX(left,right-62),center-privacyHeight/2,MIN(62,MAX(0,right-left)),privacyHeight);
+    [_privacy layoutIfNeeded];
+    right -= _privacy.reservedWidth;
     if (!_battery.hidden) {
         CGFloat bw = _battery.charging || _battery.powerSave ? 31 : 27;
-        _battery.frame = CGRectMake(right - bw, center - 6.5, 31, 13);
+        Place(_battery,CGRectMake(right - bw, center - 6.5, 31, 13));
         right -= bw + 5;
     }
     for (UIImageView *icon in _icons.reverseObjectEnumerator) {
         if (icon.hidden) continue;
         CGFloat iw = icon.image.size.width;
         CGFloat ih = icon.image.size.height;
-        icon.frame = CGRectMake(right - iw, center - ih / 2, iw, ih);
+        Place(icon,CGRectMake(right - iw, center - ih / 2, iw, ih));
         right -= iw + 4;
     }
     CGSize ns = [_network sizeThatFits:CGSizeMake(40, 14)];
-    _network.frame = CGRectMake(right - ns.width, center - 6, ns.width, 12);
+    Place(_network,CGRectMake(right - ns.width, center - 6, ns.width, 12));
     if (_network.text.length) right -= ns.width + 3;
     CGFloat maxClock = width > 350 && height > 24 ? width * .35 - left : right - left - 12;
     CGRect clockFrame = CGRectMake(left, center - 8, MAX(0, MIN(100, maxClock)), 16);

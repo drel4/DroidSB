@@ -3,6 +3,62 @@
   "commit": "7f6de40b6429462d47ba9ba351b99943269c8067",
   "files": [
     {
+      "path": "libs/WindowManager/Shell/shared/src/com/android/wm/shell/shared/animation/Interpolators.java",
+      "sha256": "8d9a66d809af01fbd4660f91beabfa8b781ce6873f469c4f8d01005cdf0a1e4d"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/events/PrivacyDotViewController.kt",
+      "sha256": "59c044c483e1bbb0e8a76971751e52f12fbc97e911d0b1a5e03212691e6b74c0"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/ic_privacy_camera.xml",
+      "sha256": "9215289e642ad864a41f8918c5d23841ddbb243efc1b674434ac4c4c88ee8fb0"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/ic_privacy_mic.xml",
+      "sha256": "9d1267f423bbaf55d1ea7e79bb682dfecd899ffb46dfca6751fffa07b5732a50"
+    },
+    {
+      "path": "packages/SystemUI/res/drawable/statusbar_privacy_chip_bg.xml",
+      "sha256": "da22b66e25087231cc1ab4954da74b0621520d8538f39d4635c8ad3444d62516"
+    },
+    {
+      "path": "packages/SystemUI/res/layout/ongoing_privacy_chip.xml",
+      "sha256": "dd64a72987a1e1fa7cb8ffbabfb0fc656832529f020c02ac339082d6644a49d4"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/privacy/PrivacyItem.kt",
+      "sha256": "9ec0a78084d31ea196f821d516dae1f0e5ff8624be26fb24bccc31093532541d"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/privacy/PrivacyItemController.kt",
+      "sha256": "b615270ef92c6e7ef4798065e64c7db6ba9f1d9db1b14d42f68becb86f7b550a"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/privacy/OngoingPrivacyChip.kt",
+      "sha256": "79063c6508bf02adf9ae95c0aead880806025a1cd43ae18c8047bafe37fb5389"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/events/SystemEventCoordinator.kt",
+      "sha256": "853ac7a69dcd256e8852e1dba63edcbe2026a16309abb278caa45b9155057e79"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/events/SystemEventChipAnimationController.kt",
+      "sha256": "28d6f6a6fa7a13a47d0d1889d01945ca04b2ae713b42066a5a6464763d003d01"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/events/SystemStatusAnimationScheduler.kt",
+      "sha256": "8b353a307227a7bfb57346d23f606df0f5e73152947e4d870906f1dda6c7ff69"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/events/SystemStatusAnimationSchedulerImpl.kt",
+      "sha256": "572a7310cfa4e9d97109f66ae669ccab5d769c65a4e764e5f2e8b2294d0d532b"
+    },
+    {
+      "path": "packages/SystemUI/src/com/android/systemui/statusbar/phone/fragment/StatusBarSystemEventAnimator.kt",
+      "sha256": "e2f47b999f246b155777425ccdaa0192fd0770a7de974c96c04bddcb4398f319"
+    },
+    {
       "path": "packages/SystemUI/src/com/android/systemui/statusbar/phone/AutoHideControllerImpl.java",
       "sha256": "31d02b91be35471d8a70df744a2e5f84196f4a54ac4230b332484698f749e92e"
     },

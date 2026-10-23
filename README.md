@@ -6,8 +6,8 @@ the native iOS status-bar host. Designed to pair with
 
 **Status: experimental. v0.1.0 confirmed working by the user on the SE below;
 v0.1.9 caused a reported SpringBoard startup freeze and is withdrawn.
-v0.1.10 rolled its runtime changes back. v0.1.13 moves the fullscreen background
-with its icons and retains recording-chip transitions/confirmation state; device
+v0.1.10 rolled its runtime changes back. v0.1.14 reproduces fullscreen motion and
+adds native-driven animated privacy indicators; device
 confirmation is still required.**
 Primary test target: iPhone SE (2016), iOS 15.8.2, rootless jailbreak.
 arm64 (SE/A9) and arm64e slices are included. iOS 16 and notched layouts still
@@ -20,7 +20,11 @@ need device validation; the original SE cannot run iOS 16.
   variable font and CoreText weight/optical-size approach as LineageQS.
 - Android unified horizontal battery with vector digits, charging bolt,
   power-saving attribution, charge fill and light/dark foreground adaptation.
-- Airplane mode, alarm, DND, VPN, location, Bluetooth and lock from iOS's status data.
+- Airplane mode, alarm, DND, VPN, location and Bluetooth from iOS's status data.
+- Animated camera/microphone privacy chip, then a persistent green dot. Native
+  iOS telemetry determines the sensor; opaque app-hosted indicators use a generic
+  dot rather than a guessed icon. See [privacy behavior](docs/PRIVACY.md).
+- No small iOS padlock in the status bar; lock-screen security is unchanged.
 - Rotation lock is intentionally hidden, matching Android's default exclusion
   list, and does not cause a stock-bar fallback.
 - Screen recording: Android red rounded chip, white recording icon and elapsed
@@ -44,13 +48,13 @@ need device validation; the original SE cannot run iOS 16.
 - No status-entry-triggered stock-bar fallback. The native network-activity
   spinner, rotation lock and other unported indicators are omitted instead.
 - Fullscreen top-edge first swipe: a temporary live DroidSB row replaces the
-  native arrow, with Android's 275/340 ms slide and easing. Native second-swipe
+  native arrow, with Android's 275/340 ms slides and transient inset curve. Native second-swipe
   routing remains; a 2.25-second native dismissal deadline pauses only while
   touching/pulling the bar, then restarts on release. App interaction is untouched.
   No outside-touch dismissal or full-screen touch overlay. Reduce Motion is respected.
   See [fullscreen behavior](docs/FULLSCREEN.md).
 
-Unported call/hotspot/privacy/secondary-SIM indicators are not recreated and do
+Unported call/hotspot/secondary-SIM indicators are not recreated and do
 not restore the stock bar. Stock visuals are used only when the tweak is disabled
 or rendering prerequisites (host/data/assets) are unavailable. Notification app
 icons are not ported yet. Carrier RAT labels
@@ -93,7 +97,7 @@ tweaks before testing. Toggle Enabled off to restore stock visuals; uninstall
 From a device shell with root privileges:
 
 ```sh
-dpkg -i dev.drel.droidsb_0.1.13_iphoneos-arm64.deb
+dpkg -i dev.drel.droidsb_0.1.14_iphoneos-arm64.deb
 killall -9 SpringBoard
 # Removal:
 apt remove dev.drel.droidsb
