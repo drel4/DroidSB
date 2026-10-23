@@ -6,8 +6,8 @@ the native iOS status-bar host. Designed to pair with
 
 **Status: experimental. v0.1.0 confirmed working by the user on the SE below;
 v0.1.9 caused a reported SpringBoard startup freeze and is withdrawn.
-v0.1.10 rolled its runtime changes back. v0.1.12 adds recording-chip transitions
-and retains the native recording indicator through confirmation; device
+v0.1.10 rolled its runtime changes back. v0.1.13 moves the fullscreen background
+with its icons and retains recording-chip transitions/confirmation state; device
 confirmation is still required.**
 Primary test target: iPhone SE (2016), iOS 15.8.2, rootless jailbreak.
 arm64 (SE/A9) and arm64e slices are included. iOS 16 and notched layouts still
@@ -93,7 +93,7 @@ tweaks before testing. Toggle Enabled off to restore stock visuals; uninstall
 From a device shell with root privileges:
 
 ```sh
-dpkg -i dev.drel.droidsb_0.1.12_iphoneos-arm64.deb
+dpkg -i dev.drel.droidsb_0.1.13_iphoneos-arm64.deb
 killall -9 SpringBoard
 # Removal:
 apt remove dev.drel.droidsb

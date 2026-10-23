@@ -12,6 +12,11 @@ a temporary live DroidSB row. It uses those slide durations/easing, a dark
 translucent backing for legibility, and white foreground. Reduce Motion skips
 the slide. It does not reveal a permanent status bar or resize the fullscreen app.
 
+As of 0.1.13, the translucent background belongs to the sliding row, not its
+stationary clipping host. The background and glyphs travel together in both
+directions; the scrim no longer fades in place behind moving icons. Slide
+timings, orientation geometry and bar-only interaction handling are unchanged.
+
 The row lives in the existing SpringBoard grabber host, not a new overlay window.
 The physical starting-edge approach was adapted from LineageQS: SpringBoard's
 scene may remain portrait-aligned over a landscape app. As of 0.1.8, the actual

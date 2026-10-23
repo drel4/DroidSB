@@ -249,7 +249,7 @@ static void DSBLayoutTransientHost(DSBTransientHost *host, UIView *container, DS
         initWithControlPoint1:CGPointMake(.4, 0) controlPoint2:CGPointMake(.2, 1)];
     self.animator = [[UIViewPropertyAnimator alloc] initWithDuration:
         animated && !UIAccessibilityIsReduceMotionEnabled() ? .340 : 0 timingParameters:timing];
-    [self.animator addAnimations:^{ host.renderer.transform = CGAffineTransformMakeTranslation(0, -host.bounds.size.height); host.backgroundColor = UIColor.clearColor; }];
+    [self.animator addAnimations:^{ host.renderer.transform = CGAffineTransformMakeTranslation(0, -host.bounds.size.height); }];
     [self.animator addCompletion:^(__unused UIViewAnimatingPosition position) {
         [host removeFromSuperview];
         arrow.hidden = hidden;
@@ -320,6 +320,9 @@ void DSBPresentTransientBar(id tongue, BOOL animated, BOOL autoDismiss) {
     host.renderer = [[DSBStatusBarView alloc] initWithFrame:host.bounds];
     host.renderer.nativeBar = host;
     host.renderer.transientPresentation = YES;
+    // The scrim belongs to the moving row, not its stationary clipping host.
+    // Background and glyphs therefore slide in/out as one surface.
+    host.renderer.backgroundColor = [UIColor colorWithWhite:0 alpha:.6];
     [host addSubview:host.renderer];
     [presentation refresh];
     if (host.renderer.hidden) { [host removeFromSuperview]; return; }
@@ -357,6 +360,6 @@ void DSBPresentTransientBar(id tongue, BOOL animated, BOOL autoDismiss) {
         initWithControlPoint1:CGPointMake(.4, 0) controlPoint2:CGPointMake(.2, 1)];
     presentation.animator = [[UIViewPropertyAnimator alloc] initWithDuration:
         animated && !UIAccessibilityIsReduceMotionEnabled() ? .275 : 0 timingParameters:timing];
-    [presentation.animator addAnimations:^{ host.renderer.transform = CGAffineTransformIdentity; host.backgroundColor = [UIColor colorWithWhite:0 alpha:.6]; }];
+    [presentation.animator addAnimations:^{ host.renderer.transform = CGAffineTransformIdentity; }];
     [presentation.animator startAnimation];
 }

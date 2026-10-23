@@ -24,6 +24,9 @@ It also removes status-entry-triggered stock fallback, including network activit
 
 ## Required before claiming stable
 
+- 0.1.13: reveal the fullscreen row over a bright video/game scene. The dark
+  background must slide down together with the glyphs, not fade in place.
+  Check slide-out, interrupted reveal/dismiss, both landscapes and Reduce Motion.
 - 0.1.12: start recording and verify chip fade-in; stop and verify fade-out with
   no tappable ghost. Rapid stop/start must reverse/restart transitions cleanly.
 - Open the recording confirmation popup. While iOS retains its native recording
